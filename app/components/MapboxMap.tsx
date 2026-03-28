@@ -44,17 +44,24 @@ export default function MapboxMap() {
 
     map.on('load', () => {
       PINS.forEach((pin) => {
+        // Outer el: Mapbox owns the transform on this for positioning — never touch it
         const el = document.createElement('div');
-        el.style.cssText = `
+        el.style.cssText = 'width:36px; height:36px; cursor:pointer;';
+
+        // Inner el: safe to animate because Mapbox never touches it
+        const inner = document.createElement('div');
+        inner.style.cssText = `
           width:36px; height:36px; border-radius:50%;
           background-color:#1a3a2a; border:2.5px solid white;
           box-shadow:0 2px 8px rgba(0,0,0,0.45);
           display:flex; align-items:center; justify-content:center;
-          cursor:pointer; transition:transform 0.15s;
+          transition:transform 0.15s;
         `;
-        el.innerHTML = FORK_SVG;
-        el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2)'; });
-        el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
+        inner.innerHTML = FORK_SVG;
+        el.appendChild(inner);
+
+        el.addEventListener('mouseenter', () => { inner.style.transform = 'scale(1.2)'; });
+        el.addEventListener('mouseleave', () => { inner.style.transform = 'scale(1)'; });
 
         new mapboxgl.Marker({ element: el })
           .setLngLat([pin.lng, pin.lat])
