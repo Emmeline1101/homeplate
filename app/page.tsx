@@ -4,17 +4,17 @@ import ListingFeed from './components/ListingFeed';
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col h-screen bg-slate-50">
+    <div className="flex flex-col h-screen" style={{ backgroundColor: '#faf7f2' }}>
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Map */}
-        <div className="hidden md:block w-1/2 relative border-r border-slate-100">
+        {/* Map — 55% */}
+        <div className="hidden md:block relative border-r border-gray-200" style={{ width: '55%' }}>
           <MapboxMapClient />
         </div>
 
-        {/* Right: Feed */}
-        <div className="w-full md:w-1/2 overflow-hidden">
+        {/* Feed — 45% */}
+        <div className="w-full overflow-hidden" style={{ width: '45%' }}>
           <ListingFeed />
         </div>
       </div>
