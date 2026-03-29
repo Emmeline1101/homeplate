@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import CartIcon from './CartIcon';
 
 export default function Navbar() {
   return (
@@ -29,6 +30,7 @@ export default function Navbar() {
 
       {/* Actions */}
       <div className="flex items-center gap-2.5 shrink-0">
+        <CartIcon />
         <Link
           href="/auth/signin"
           className="text-sm font-semibold px-4 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
+import RequestExchangeButton from '../../components/RequestExchangeButton';
 import { getListing, getRecipe, getReviews, CUISINE_GRADIENTS } from '../../lib/mock';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -186,12 +187,17 @@ export default async function ListingDetailPage({
           </div>
 
           {/* CTA */}
-          <button
-            className="w-full rounded-2xl text-white font-bold text-base py-4 transition-opacity hover:opacity-90 shadow-sm"
-            style={{ backgroundColor: '#1a3a2a' }}
-          >
-            Request Exchange
-          </button>
+          <RequestExchangeButton item={{
+            listingId: listing.id,
+            title: listing.title,
+            cuisine: listing.cuisine,
+            cook: listing.cook,
+            emoji: listing.emoji,
+            price: listing.price,
+            maxPortions: listing.portions,
+            pickupStart: listing.pickupStart,
+            pickupEnd: listing.pickupEnd,
+          }} />
         </div>
 
         {/* ── Recipe card ── */}
