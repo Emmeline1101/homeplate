@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
+import BackButton from '../components/BackButton';
 import { useCart, CartItem } from '../lib/cartStore';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -164,12 +165,9 @@ export default function CartPage() {
 
       <main className="flex-1 w-full max-w-2xl mx-auto px-4 py-8">
         {/* Back */}
-        <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-6">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to listings
-        </Link>
+        <div className="mb-6">
+          <BackButton fallback="/" variant="ghost" />
+        </div>
 
         <h1 className="text-2xl font-bold mb-6" style={{ color: '#1a3a2a' }}>
           Your Cart

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import Navbar from '../../components/Navbar';
+import BackButton from '../../components/BackButton';
 import { createClient } from '../../lib/supabase';
 
 type Message = {
@@ -12,11 +12,12 @@ type Message = {
   created_at: string;
 };
 
-// Mock seed messages for UI demo when Supabase isn't wired up yet
-const SEED: Record<string, { with: string; listing: string; messages: Omit<Message, 'id'>[] }> = {
+const SEED: Record<string, { with: string; listing: string; emoji: string; avatarColors: [string, string]; messages: Omit<Message, 'id'>[] }> = {
   '1': {
     with: 'Wei Zhang',
     listing: 'Matcha Pound Cake',
+    emoji: '🍰',
+    avatarColors: ['#d97706', '#92400e'],
     messages: [
       { sender_id: 'them', body: 'Hi! I saw your listing for the Matcha Pound Cake. Is pickup still available on Saturday?', created_at: '2026-04-05T09:00:00' },
       { sender_id: 'me',   body: 'Yes! I have 2 portions left. I can do Saturday morning, around 10–12pm.', created_at: '2026-04-05T09:05:00' },
@@ -26,6 +27,8 @@ const SEED: Record<string, { with: string; listing: string; messages: Omit<Messa
   '2': {
     with: 'Lisa Ng',
     listing: 'Hong Kong Egg Tarts (6-pack)',
+    emoji: '🥚',
+    avatarColors: ['#f472b6', '#db2777'],
     messages: [
       { sender_id: 'me',   body: 'Hi Lisa! Are the egg tarts still available for this weekend?', created_at: '2026-04-04T14:00:00' },
       { sender_id: 'them', body: 'The egg tarts will be ready by 10am.', created_at: '2026-04-04T14:30:00' },
@@ -34,6 +37,8 @@ const SEED: Record<string, { with: string; listing: string; messages: Omit<Messa
   '3': {
     with: 'Rachel Chen',
     listing: 'Matcha White Chocolate Bark',
+    emoji: '🍫',
+    avatarColors: ['#c084fc', '#7c3aed'],
     messages: [
       { sender_id: 'me', body: 'Do you have any nut-free options?', created_at: '2026-04-03T11:00:00' },
     ],
@@ -41,9 +46,11 @@ const SEED: Record<string, { with: string; listing: string; messages: Omit<Messa
   '4': {
     with: 'Paul Lin',
     listing: 'Chrysanthemum & Wolfberry Tea',
+    emoji: '🌸',
+    avatarColors: ['#6ee7b7', '#059669'],
     messages: [
       { sender_id: 'them', body: 'Your tea blend was absolutely wonderful!', created_at: '2026-04-01T18:00:00' },
-      { sender_id: 'me',   body: 'So glad you enjoyed it! I\'ll be making another batch soon.', created_at: '2026-04-01T18:30:00' },
+      { sender_id: 'me',   body: "So glad you enjoyed it! I'll be making another batch soon.", created_at: '2026-04-01T18:30:00' },
       { sender_id: 'them', body: 'Thank you for the tea — my whole family loved it!', created_at: '2026-04-01T19:00:00' },
     ],
   },
@@ -62,22 +69,20 @@ export default function ConversationPage({
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
-  const [info, setInfo] = useState({ with: '', listing: '' });
+  const [info, setInfo] = useState({ with: '', listing: '', emoji: '', avatarColors: ['#1a3a2a', '#2d6a4f'] as [string, string] });
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Resolve params and seed messages
   useEffect(() => {
     params.then(({ id }) => {
       setConvId(id);
       const seed = SEED[id];
       if (seed) {
-        setInfo({ with: seed.with, listing: seed.listing });
+        setInfo({ with: seed.with, listing: seed.listing, emoji: seed.emoji, avatarColors: seed.avatarColors });
         setMessages(seed.messages.map((m, i) => ({ ...m, id: `seed-${i}` })));
       }
     });
   }, [params]);
 
-  // Subscribe to Supabase Realtime for new messages
   useEffect(() => {
     if (!convId) return;
     const supabase = createClient();
@@ -92,11 +97,9 @@ export default function ConversationPage({
         }
       )
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [convId]);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -107,7 +110,6 @@ export default function ConversationPage({
     setDraft('');
     setSending(true);
 
-    // Optimistic UI: add locally
     const optimistic: Message = {
       id: `opt-${Date.now()}`,
       sender_id: 'me',
@@ -116,7 +118,6 @@ export default function ConversationPage({
     };
     setMessages(prev => [...prev, optimistic]);
 
-    // Persist to Supabase
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -137,22 +138,31 @@ export default function ConversationPage({
   }
 
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: '#faf7f2' }}>
+    <div className="flex flex-col h-screen" style={{ backgroundColor: '#f7f4ef' }}>
       <Navbar />
 
       {/* Chat header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 shrink-0">
-        <Link href="/messages" className="text-gray-400 hover:text-gray-600 transition-colors">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
-          style={{ backgroundColor: '#1a3a2a' }}
-        >
-          {info.with[0] ?? '?'}
+      <div
+        className="shrink-0 px-4 py-3 flex items-center gap-3 border-b border-gray-100"
+        style={{ backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)' }}
+      >
+        <BackButton fallback="/messages" variant="ghost" />
+
+        {/* Avatar with listing emoji badge */}
+        <div className="relative shrink-0">
+          <div
+            className="w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold text-white"
+            style={{ background: `linear-gradient(135deg, ${info.avatarColors[0]}, ${info.avatarColors[1]})` }}
+          >
+            {info.with[0] ?? '?'}
+          </div>
+          {info.emoji && (
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white flex items-center justify-center text-[9px] shadow-sm border border-gray-100">
+              {info.emoji}
+            </div>
+          )}
         </div>
+
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-gray-900 truncate">{info.with || '…'}</p>
           <p className="text-xs text-gray-400 truncate">{info.listing}</p>
@@ -160,17 +170,25 @@ export default function ConversationPage({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3 no-scrollbar">
         {messages.map(msg => {
           const isMe = msg.sender_id === 'me';
           return (
-            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div className="max-w-[75%]">
+            <div key={msg.id} className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
+              {!isMe && (
                 <div
-                  className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  className="shrink-0 w-7 h-7 rounded-xl flex items-center justify-center text-[11px] font-bold text-white mb-4"
+                  style={{ background: `linear-gradient(135deg, ${info.avatarColors[0]}, ${info.avatarColors[1]})` }}
+                >
+                  {info.with[0] ?? '?'}
+                </div>
+              )}
+              <div className="max-w-[72%]">
+                <div
+                  className={`px-4 py-2.5 text-sm leading-relaxed ${
                     isMe
-                      ? 'text-white rounded-br-md'
-                      : 'bg-white border border-gray-100 text-gray-800 rounded-bl-md shadow-sm'
+                      ? 'text-white rounded-3xl rounded-br-md shadow-sm'
+                      : 'bg-white border border-gray-100 text-gray-800 rounded-3xl rounded-bl-md shadow-sm'
                   }`}
                   style={isMe ? { backgroundColor: '#1a3a2a' } : {}}
                 >
@@ -187,12 +205,15 @@ export default function ConversationPage({
       </div>
 
       {/* Input bar */}
-      <div className="shrink-0 bg-white border-t border-gray-100 px-4 py-3 flex items-end gap-3">
+      <div
+        className="shrink-0 px-4 py-3 flex items-end gap-2 border-t border-gray-100 mb-16 md:mb-0"
+        style={{ backgroundColor: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)' }}
+      >
         <textarea
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message… (Enter to send)"
+          placeholder="Type a message…"
           rows={1}
           className="flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm resize-none focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all leading-relaxed"
           style={{ maxHeight: 120 }}
@@ -200,7 +221,7 @@ export default function ConversationPage({
         <button
           onClick={sendMessage}
           disabled={!draft.trim() || sending}
-          className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white transition-colors disabled:opacity-40"
+          className="shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center text-white transition-all disabled:opacity-40 hover:opacity-90"
           style={{ backgroundColor: '#1a3a2a' }}
         >
           <svg className="w-4 h-4 rotate-90" fill="currentColor" viewBox="0 0 24 24">
