@@ -34,7 +34,7 @@ export default function AuthCard({ children }: { children: React.ReactNode }) {
           {/* Testimonial */}
           <div className="border-l-2 border-amber-400/60 pl-4">
             <p className="text-white/80 text-sm italic leading-relaxed">
-              &ldquo;Finally found someone who makes egg tarts that aren&apos;t overly sweet. This community is a treasure.&rdquo;
+              {'"Finally found someone who makes egg tarts that aren\'t overly sweet. This community is a treasure."'}
             </p>
             <p className="text-white/40 text-xs mt-2 font-semibold">— Sandra K., San Francisco</p>
           </div>
