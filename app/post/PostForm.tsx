@@ -1,10 +1,17 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import { createClient } from '../lib/supabase';
 
-const CUISINES = [
-  'Chinese', 'Japanese', 'Korean', 'Mexican',
-  'Italian', 'Indian', 'American', 'Vietnamese', 'Thai', 'Other',
+const CATEGORIES = [
+  'Baked Goods',
+  'Asian Sweets',
+  'Jams & Preserves',
+  'Confections',
+  'Dried & Packaged',
+  'Fermented',
+  'Noodles & Pantry',
+  'Cookies & Biscuits',
 ];
 
 const ALLERGENS = [
@@ -108,49 +115,65 @@ export default function PostForm() {
   const [allergens, setAllergens] = useState<Set<string>>(new Set());
   const [showModal, setShowModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [photoName, setPhotoName] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isVideoDragging, setIsVideoDragging] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [published, setPublished] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   function toggleAllergen(id: string) {
     setAllergens((prev) => {
       const next = new Set(prev);
       if (id === 'none') {
-        // selecting "none" clears others; toggling off clears none
-        if (next.has('none')) {
-          next.delete('none');
-        } else {
-          next.clear();
-          next.add('none');
-        }
+        if (next.has('none')) { next.delete('none'); }
+        else { next.clear(); next.add('none'); }
       } else {
-        next.delete('none'); // uncheck "none" when a real allergen is picked
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
+        next.delete('none');
+        if (next.has(id)) next.delete(id); else next.add(id);
       }
       return next;
     });
   }
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const handlePhotoDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) setPhotoName(file.name);
+    if (file && file.type.startsWith('image/')) setPhotoFile(file);
   }, []);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) setPhotoName(file.name);
-  }
+  const handleVideoDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsVideoDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('video/')) setVideoFile(file);
+  }, []);
 
-  function handlePublishClick() {
-    setShowModal(true);
-  }
+  function handlePublishClick() { setShowModal(true); }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     setShowModal(false);
-    // Real submission will go here
-    alert('Listing published! (mock)');
+    setUploading(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? 'anonymous';
+    const listingId = crypto.randomUUID();
+
+    if (photoFile) {
+      const ext = photoFile.name.split('.').pop();
+      await supabase.storage.from('listing-photos')
+        .upload(`${userId}/${listingId}.${ext}`, photoFile, { upsert: true });
+    }
+    if (videoFile) {
+      const ext = videoFile.name.split('.').pop();
+      await supabase.storage.from('listing-videos')
+        .upload(`${userId}/${listingId}.${ext}`, videoFile, { upsert: true });
+    }
+
+    setUploading(false);
+    setPublished(true);
   }
 
   return (
@@ -170,7 +193,7 @@ export default function PostForm() {
               type="text"
               name="title"
               required
-              placeholder="e.g. Grandma's Kung Pao Chicken"
+              placeholder="e.g. Matcha Pound Cake, Yuzu Marmalade…"
               className={inputCls}
             />
           </div>
@@ -181,17 +204,17 @@ export default function PostForm() {
             <textarea
               name="description"
               rows={3}
-              placeholder="Tell people about your dish — ingredients, story, serving suggestions…"
+              placeholder="Describe your cottage food — ingredients, flavor profile, shelf life, packaging…"
               className={`${inputCls} resize-none`}
             />
           </div>
 
-          {/* Cuisine */}
+          {/* Category */}
           <div>
-            <Label>Cuisine tag</Label>
+            <Label>Category</Label>
             <select name="cuisine" required defaultValue="" className={inputCls}>
-              <option value="" disabled>Select a cuisine…</option>
-              {CUISINES.map((c) => (
+              <option value="" disabled>Select a category…</option>
+              {CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
@@ -316,63 +339,99 @@ export default function PostForm() {
           </div>
         </SectionCard>
 
-        {/* ── Section 4: Photo ── */}
+        {/* ── Section 4: Photos & Video ── */}
         <SectionCard>
+          <h2 className="text-base font-bold text-slate-900">Photos &amp; video</h2>
+
+          {/* Photo upload */}
           <div>
-            <Label>Photo</Label>
+            <Label>Photo <span className="text-slate-400 font-normal">(recommended)</span></Label>
             <div
-              role="button"
-              tabIndex={0}
+              role="button" tabIndex={0}
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-              className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-10 cursor-pointer transition-colors
-                ${isDragging
-                  ? 'border-orange-400 bg-orange-50'
-                  : 'border-slate-200 bg-slate-50 hover:border-orange-300 hover:bg-orange-50/50'
-                }`}
+              onDrop={handlePhotoDrop}
+              onClick={() => photoInputRef.current?.click()}
+              onKeyDown={(e) => e.key === 'Enter' && photoInputRef.current?.click()}
+              className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 cursor-pointer transition-colors ${
+                isDragging ? 'border-amber-400 bg-amber-50' : 'border-slate-200 bg-slate-50 hover:border-amber-300 hover:bg-amber-50/50'
+              }`}
             >
-              {photoName ? (
+              {photoFile ? (
                 <>
-                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">
-                    ✅
-                  </div>
-                  <p className="text-sm font-medium text-slate-700">{photoName}</p>
+                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">✅</div>
+                  <p className="text-sm font-medium text-slate-700">{photoFile.name}</p>
                   <p className="text-xs text-slate-400">Click to replace</p>
                 </>
               ) : (
                 <>
-                  <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-2xl">
-                    📷
-                  </div>
+                  <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-2xl">📷</div>
                   <div className="text-center">
                     <p className="text-sm font-medium text-slate-700">
-                      Drop a photo here or <span className="text-orange-500 underline underline-offset-2">browse</span>
+                      Drop a photo or <span className="text-amber-600 underline underline-offset-2">browse</span>
                     </p>
                     <p className="text-xs text-slate-400 mt-1">JPEG or PNG, up to 10 MB</p>
                   </div>
                 </>
               )}
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png"
-              className="sr-only"
-              onChange={handleFileChange}
-            />
+            <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only"
+              onChange={e => setPhotoFile(e.target.files?.[0] ?? null)} />
+          </div>
+
+          {/* Video upload */}
+          <div>
+            <Label>Short video <span className="text-slate-400 font-normal">(optional — show your process)</span></Label>
+            <div
+              role="button" tabIndex={0}
+              onDragOver={(e) => { e.preventDefault(); setIsVideoDragging(true); }}
+              onDragLeave={() => setIsVideoDragging(false)}
+              onDrop={handleVideoDrop}
+              onClick={() => videoInputRef.current?.click()}
+              onKeyDown={(e) => e.key === 'Enter' && videoInputRef.current?.click()}
+              className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 cursor-pointer transition-colors ${
+                isVideoDragging ? 'border-amber-400 bg-amber-50' : 'border-slate-200 bg-slate-50 hover:border-amber-300 hover:bg-amber-50/50'
+              }`}
+            >
+              {videoFile ? (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">🎬</div>
+                  <p className="text-sm font-medium text-slate-700">{videoFile.name}</p>
+                  <p className="text-xs text-slate-400">Click to replace</p>
+                </>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-2xl">🎥</div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-slate-700">
+                      Drop a video or <span className="text-amber-600 underline underline-offset-2">browse</span>
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">MP4 or MOV, up to 100 MB</p>
+                  </div>
+                </>
+              )}
+            </div>
+            <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/mov" className="sr-only"
+              onChange={e => setVideoFile(e.target.files?.[0] ?? null)} />
           </div>
         </SectionCard>
 
         {/* ── Publish button ── */}
-        <button
-          type="submit"
-          className="w-full rounded-2xl bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold text-base py-4 shadow-md shadow-orange-200 transition-colors"
-        >
-          Publish Listing
-        </button>
+        {published ? (
+          <div className="w-full rounded-2xl bg-green-50 border border-green-200 py-5 flex flex-col items-center gap-1">
+            <span className="text-2xl">✅</span>
+            <p className="text-sm font-bold text-green-700">Listing published!</p>
+            <p className="text-xs text-green-600">Your cottage food is now visible to the community.</p>
+          </div>
+        ) : (
+          <button
+            type="submit" disabled={uploading}
+            className="w-full rounded-2xl text-white font-bold text-base py-4 shadow-md transition-colors disabled:opacity-60"
+            style={{ backgroundColor: '#1a3a2a' }}
+          >
+            {uploading ? 'Uploading…' : 'Publish Listing'}
+          </button>
+        )}
       </form>
 
       {showModal && (

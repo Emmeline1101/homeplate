@@ -3,7 +3,7 @@
 export type Listing = {
   id: string;
   title: string;
-  cuisine: string;
+  cuisine: string;       // cottage food category
   cook: string;
   cookRating: number;
   cookReviews: number;
@@ -12,7 +12,7 @@ export type Listing = {
   distance: string;
   portions: number;
   totalPortions: number;
-  price: number; // cents
+  price: number;         // cents; 0 = free exchange
   emoji: string;
   description: string;
   allergens: string[];
@@ -35,373 +35,497 @@ export type Review = {
   date: string;
 };
 
-// ── Gradient palette (shared with feed) ──────────────────────────────────────
+// ── Category gradient palette ────────────────────────────────────────────────
 
 export const CUISINE_GRADIENTS: Record<string, [string, string]> = {
-  Chinese:    ['#f87171', '#f97316'],
-  Mexican:    ['#fb923c', '#eab308'],
-  Italian:    ['#4ade80', '#16a34a'],
-  Japanese:   ['#818cf8', '#3b82f6'],
-  Indian:     ['#fbbf24', '#f97316'],
-  American:   ['#94a3b8', '#475569'],
-  Vietnamese: ['#86efac', '#22c55e'],
-  Thai:       ['#c084fc', '#7c3aed'],
-  Korean:     ['#f472b6', '#db2777'],
-  Ethiopian:  ['#fb923c', '#b45309'],
-  Greek:      ['#67e8f9', '#2563eb'],
-  Lebanese:   ['#5eead4', '#0f766e'],
+  'Baked Goods':      ['#d97706', '#92400e'],
+  'Asian Sweets':     ['#f472b6', '#db2777'],
+  'Jams & Preserves': ['#fbbf24', '#f97316'],
+  'Confections':      ['#c084fc', '#7c3aed'],
+  'Dried & Packaged': ['#6ee7b7', '#059669'],
+  'Fermented':        ['#5eead4', '#0f766e'],
+  'Noodles & Pantry': ['#f87171', '#dc2626'],
+  'Cookies & Biscuits': ['#bef264', '#65a30d'],
 };
 
-// ── 30 listings ───────────────────────────────────────────────────────────────
+// ── 30 cottage food listings ──────────────────────────────────────────────────
 
 export const LISTINGS: Listing[] = [
-  // ── Chinese ──
+
+  // ── Baked Goods (5) ──
   {
-    id: '1', title: 'Kung Pao Chicken', cuisine: 'Chinese',
-    cook: 'Wei Zhang', cookRating: 4.8, cookReviews: 37, cookCity: 'San Francisco, CA', topCook: true,
-    distance: '0.4 mi', portions: 4, totalPortions: 6, price: 900, emoji: '🥡',
-    description: 'Classic Sichuan stir-fry with tender wok-tossed chicken, roasted peanuts, dried chilies, and Sichuan peppercorns. This three-generation family recipe balances numbing heat with a savory-sweet sauce.',
-    allergens: ['peanuts', 'soy', 'gluten'],
-    pickupStart: '2026-03-28T11:00', pickupEnd: '2026-03-28T14:00',
+    id: '1', title: 'Matcha Pound Cake', cuisine: 'Baked Goods',
+    cook: 'Wei Zhang', cookRating: 4.9, cookReviews: 43, cookCity: 'San Francisco, CA', topCook: true,
+    distance: '0.4 mi', portions: 4, totalPortions: 6, price: 1200, emoji: '🍰',
+    description: 'Dense, lightly sweet pound cake made with ceremonial-grade matcha from Kyoto. Less sugar than typical American cakes — the bitter green tea flavor shines through. Wrapped individually, shelf-stable for 5 days.',
+    allergens: ['gluten', 'eggs', 'dairy'],
+    pickupStart: '2026-04-05T10:00', pickupEnd: '2026-04-05T13:00',
   },
   {
-    id: '2', title: 'Xiao Long Bao', cuisine: 'Chinese',
-    cook: 'Mei Lin', cookRating: 4.9, cookReviews: 52, cookCity: 'New York, NY', topCook: true,
-    distance: '0.8 mi', portions: 6, totalPortions: 8, price: 1200, emoji: '🥟',
-    description: 'Hand-folded Shanghainese soup dumplings filled with seasoned pork and rich gelatinous broth. Each batch of 8 dumplings is made fresh the morning of pickup.',
-    allergens: ['gluten', 'soy'],
-    pickupStart: '2026-03-28T10:00', pickupEnd: '2026-03-28T13:00',
+    id: '2', title: 'Ube Brioche Loaf', cuisine: 'Baked Goods',
+    cook: 'Lily Chen', cookRating: 4.8, cookReviews: 31, cookCity: 'Los Angeles, CA', topCook: true,
+    distance: '0.7 mi', portions: 3, totalPortions: 4, price: 1500, emoji: '🍞',
+    description: 'Pillowy Filipino-inspired brioche tinted purple with real ube halaya. Mildly sweet with a buttery crumb and subtle vanilla-coconut aroma. Each loaf is roughly 450g, perfect for toast or sandwiches.',
+    allergens: ['gluten', 'eggs', 'dairy'],
+    pickupStart: '2026-04-06T09:00', pickupEnd: '2026-04-06T12:00',
   },
   {
-    id: '3', title: 'Mapo Tofu', cuisine: 'Chinese',
-    cook: 'Chen Wei', cookRating: 4.7, cookReviews: 28, cookCity: 'Los Angeles, CA', topCook: false,
-    distance: '1.2 mi', portions: 3, totalPortions: 5, price: 800, emoji: '🫕',
-    description: 'Silken tofu and ground pork simmered in a deeply spiced sauce of doubanjiang, fermented black beans, and Sichuan peppercorns. Numbingly good.',
-    allergens: ['soy', 'gluten'],
-    pickupStart: '2026-03-28T12:00', pickupEnd: '2026-03-28T15:00',
-  },
-  // ── Mexican ──
-  {
-    id: '4', title: 'Tacos al Pastor', cuisine: 'Mexican',
-    cook: 'Maria Flores', cookRating: 4.9, cookReviews: 64, cookCity: 'Los Angeles, CA', topCook: true,
-    distance: '0.6 mi', portions: 10, totalPortions: 12, price: 0, emoji: '🌮',
-    description: 'Marinated pork shoulder slow-cooked with achiote, guajillo chiles, and pineapple. Served with handmade corn tortillas, cilantro, and salsa verde. Free exchange — no catch!',
-    allergens: ['none'],
-    pickupStart: '2026-03-28T13:00', pickupEnd: '2026-03-28T16:00',
+    id: '3', title: 'Pineapple Cakes (凤梨酥)', cuisine: 'Baked Goods',
+    cook: 'Grace Wu', cookRating: 4.7, cookReviews: 58, cookCity: 'San Jose, CA', topCook: true,
+    distance: '1.1 mi', portions: 6, totalPortions: 8, price: 1000, emoji: '🧁',
+    description: 'Traditional Taiwanese pineapple shortcakes with buttery pastry shell and a tangy pineapple-winter-melon jam filling. Each box contains 6 individually wrapped cakes. Far less sweet than store-bought.',
+    allergens: ['gluten', 'eggs', 'dairy'],
+    pickupStart: '2026-04-04T11:00', pickupEnd: '2026-04-04T14:00',
   },
   {
-    id: '5', title: 'Chicken Enchiladas', cuisine: 'Mexican',
-    cook: 'Rosa Gutierrez', cookRating: 4.7, cookReviews: 31, cookCity: 'Austin, TX', topCook: false,
-    distance: '1.0 mi', portions: 5, totalPortions: 6, price: 1000, emoji: '🫔',
-    description: 'Rolled corn tortillas stuffed with shredded chicken, black beans, and Oaxacan cheese, smothered in homemade red mole sauce and baked until bubbly.',
-    allergens: ['dairy', 'gluten'],
-    pickupStart: '2026-03-28T11:30', pickupEnd: '2026-03-28T14:30',
+    id: '4', title: 'Red Bean Swirl Bread', cuisine: 'Baked Goods',
+    cook: 'Mei Lin', cookRating: 4.6, cookReviews: 22, cookCity: 'Fremont, CA', topCook: false,
+    distance: '2.3 mi', portions: 2, totalPortions: 4, price: 1100, emoji: '🥐',
+    description: 'Soft milk bread swirled with homemade red bean paste (low sugar). The dough is enriched with a touch of tangzhong for a cloud-like texture that stays fresh for 3 days at room temperature.',
+    allergens: ['gluten', 'eggs', 'dairy'],
+    pickupStart: '2026-04-07T10:00', pickupEnd: '2026-04-07T13:00',
   },
   {
-    id: '6', title: 'Tamales de Pollo', cuisine: 'Mexican',
-    cook: 'Carmen Vega', cookRating: 4.8, cookReviews: 44, cookCity: 'Houston, TX', topCook: true,
-    distance: '1.8 mi', portions: 8, totalPortions: 10, price: 800, emoji: '🌽',
-    description: 'Traditional masa tamales filled with spiced chicken and roasted salsa verde, wrapped in corn husks and slow-steamed. A family Christmas recipe made year-round.',
-    allergens: ['none'],
-    pickupStart: '2026-03-28T12:00', pickupEnd: '2026-03-28T15:00',
+    id: '5', title: 'Scallion Milk Bread Rolls', cuisine: 'Baked Goods',
+    cook: 'Tom Huang', cookRating: 4.5, cookReviews: 17, cookCity: 'Oakland, CA', topCook: false,
+    distance: '1.6 mi', portions: 5, totalPortions: 6, price: 900, emoji: '🍞',
+    description: 'Savory fluffy dinner rolls filled with caramelized scallion and a hint of sesame oil. Not sweet at all — a perfect savory alternative to butter rolls. Pack of 4 rolls per portion.',
+    allergens: ['gluten', 'eggs', 'dairy'],
+    pickupStart: '2026-04-05T14:00', pickupEnd: '2026-04-05T17:00',
   },
-  // ── Italian ──
+
+  // ── Asian Sweets (5) ──
   {
-    id: '7', title: 'Homemade Lasagna', cuisine: 'Italian',
-    cook: 'Gianna Ricci', cookRating: 4.7, cookReviews: 29, cookCity: 'New York, NY', topCook: false,
-    distance: '0.7 mi', portions: 2, totalPortions: 4, price: 1200, emoji: '🍝',
-    description: 'Seven-layer lasagna with house-made Bolognese, béchamel, and aged Parmigiano-Reggiano. Rested overnight for full flavor development.',
-    allergens: ['gluten', 'dairy', 'eggs'],
-    pickupStart: '2026-03-28T11:00', pickupEnd: '2026-03-28T14:00',
-  },
-  {
-    id: '8', title: 'Truffle Risotto', cuisine: 'Italian',
-    cook: 'Marco Bianchi', cookRating: 4.9, cookReviews: 55, cookCity: 'Chicago, IL', topCook: true,
-    distance: '1.4 mi', portions: 3, totalPortions: 4, price: 1400, emoji: '🫘',
-    description: 'Carnaroli rice slowly cooked with homemade chicken stock, white wine, shaved black truffle, and Pecorino Romano. Finished with cold butter for an ultra-creamy texture.',
+    id: '6', title: 'Mango Mochi (8-piece)', cuisine: 'Asian Sweets',
+    cook: 'Amy Park', cookRating: 4.8, cookReviews: 39, cookCity: 'San Francisco, CA', topCook: true,
+    distance: '0.6 mi', portions: 5, totalPortions: 8, price: 1400, emoji: '🍡',
+    description: 'Handmade mochi filled with Alphonso mango cream. The rice skin is thin and barely sweet, letting the fragrant mango filling take center stage. Best enjoyed within 2 days. Keep refrigerated after pickup.',
     allergens: ['dairy'],
-    pickupStart: '2026-03-28T12:00', pickupEnd: '2026-03-28T15:00',
+    pickupStart: '2026-04-06T10:00', pickupEnd: '2026-04-06T13:00',
   },
   {
-    id: '9', title: 'Pasta Carbonara', cuisine: 'Italian',
-    cook: 'Sofia Romano', cookRating: 4.6, cookReviews: 22, cookCity: 'Boston, MA', topCook: false,
-    distance: '0.9 mi', portions: 4, totalPortions: 5, price: 1100, emoji: '🍜',
-    description: 'Authentic Roman carbonara — spaghetti with guanciale, egg yolks, Pecorino Romano, and black pepper. No cream, ever. Rich, silky, and perfected over years.',
-    allergens: ['gluten', 'dairy', 'eggs'],
-    pickupStart: '2026-03-28T13:00', pickupEnd: '2026-03-28T16:00',
-  },
-  // ── Japanese ──
-  {
-    id: '10', title: 'Tonkotsu Ramen', cuisine: 'Japanese',
-    cook: 'Hana Nakamura', cookRating: 5.0, cookReviews: 81, cookCity: 'Seattle, WA', topCook: true,
-    distance: '2.3 mi', portions: 5, totalPortions: 6, price: 1000, emoji: '🍜',
-    description: 'Rich, milky pork bone broth simmered for 18 hours. Topped with chashu pork belly, soft-boiled marinated egg, bamboo shoots, and nori. The real deal.',
-    allergens: ['gluten', 'soy', 'eggs'],
-    pickupStart: '2026-03-28T11:00', pickupEnd: '2026-03-28T14:00',
+    id: '7', title: 'Tang Yuan — Black Sesame', cuisine: 'Asian Sweets',
+    cook: 'Jenny Liu', cookRating: 4.7, cookReviews: 25, cookCity: 'Los Angeles, CA', topCook: false,
+    distance: '1.0 mi', portions: 4, totalPortions: 6, price: 800, emoji: '🍡',
+    description: 'Frozen glutinous rice balls filled with a rich, nutty black sesame paste. Each portion has 8 pieces. Simply drop into boiling water for 5 minutes. No sugar added to the skin — only the filling is lightly sweetened.',
+    allergens: ['sesame'],
+    pickupStart: '2026-04-05T11:00', pickupEnd: '2026-04-05T14:00',
   },
   {
-    id: '11', title: 'Chicken Karaage', cuisine: 'Japanese',
-    cook: 'Yuki Tanaka', cookRating: 4.8, cookReviews: 40, cookCity: 'San Francisco, CA', topCook: false,
-    distance: '0.5 mi', portions: 4, totalPortions: 6, price: 900, emoji: '🍗',
-    description: 'Double-fried chicken thighs marinated in soy, ginger, and sake. Incredibly juicy inside, shatteringly crispy outside. Served with Japanese mayo and lemon.',
-    allergens: ['soy', 'gluten'],
-    pickupStart: '2026-03-28T12:00', pickupEnd: '2026-03-28T15:00',
+    id: '8', title: 'Nian Gao (New Year Cake)', cuisine: 'Asian Sweets',
+    cook: 'Chen Wei', cookRating: 4.6, cookReviews: 20, cookCity: 'Cupertino, CA', topCook: false,
+    distance: '3.1 mi', portions: 3, totalPortions: 4, price: 900, emoji: '🍮',
+    description: 'Traditional sticky rice cake made with glutinous rice flour and palm sugar. Lightly sweet with a chewy, dense texture — great pan-fried with egg. This family recipe uses 40% less sugar than commercial versions.',
+    allergens: ['eggs'],
+    pickupStart: '2026-04-08T10:00', pickupEnd: '2026-04-08T13:00',
   },
   {
-    id: '12', title: 'Salmon Sushi Platter', cuisine: 'Japanese',
-    cook: 'Kenji Ito', cookRating: 4.9, cookReviews: 67, cookCity: 'New York, NY', topCook: true,
-    distance: '1.1 mi', portions: 2, totalPortions: 3, price: 1500, emoji: '🍣',
-    description: '12-piece nigiri and maki platter with sushi-grade salmon, tuna, and yellowtail. Rice seasoned with house-made vinegar blend. Includes pickled ginger and wasabi.',
-    allergens: ['soy', 'sesame', 'shellfish'],
-    pickupStart: '2026-03-28T10:00', pickupEnd: '2026-03-28T13:00',
-  },
-  // ── Indian ──
-  {
-    id: '13', title: 'Butter Chicken & Naan', cuisine: 'Indian',
-    cook: 'Priya Sharma', cookRating: 4.6, cookReviews: 33, cookCity: 'Chicago, IL', topCook: false,
-    distance: '0.9 mi', portions: 3, totalPortions: 8, price: 900, emoji: '🍛',
-    description: 'Tender chicken in a velvety tomato-cream sauce with aromatic spices. Served with freshly baked garlic naan. My mother\'s recipe from Lucknow, made mild-to-medium spicy.',
-    allergens: ['dairy', 'gluten'],
-    pickupStart: '2026-03-28T12:00', pickupEnd: '2026-03-28T15:00',
+    id: '9', title: 'Hong Kong Egg Tarts (6-pack)', cuisine: 'Asian Sweets',
+    cook: 'Lisa Ng', cookRating: 4.9, cookReviews: 67, cookCity: 'San Francisco, CA', topCook: true,
+    distance: '0.5 mi', portions: 6, totalPortions: 10, price: 1100, emoji: '🥚',
+    description: 'Flaky shortcrust pastry shells with silky smooth baked egg custard. Less sweet than dim sum restaurant versions — you can actually taste the egg. Best eaten the same day; pack of 6.',
+    allergens: ['gluten', 'eggs', 'dairy'],
+    pickupStart: '2026-04-06T11:00', pickupEnd: '2026-04-06T14:00',
   },
   {
-    id: '14', title: 'Lamb Biryani', cuisine: 'Indian',
-    cook: 'Arjun Patel', cookRating: 4.8, cookReviews: 48, cookCity: 'Houston, TX', topCook: true,
-    distance: '1.3 mi', portions: 4, totalPortions: 5, price: 1100, emoji: '🍚',
-    description: 'Hyderabadi-style dum biryani with slow-cooked lamb, aged basmati rice, saffron, and fried onions. Sealed and cooked in its own steam for two hours.',
+    id: '10', title: 'Sesame Balls (芝麻球) — 6 pack', cuisine: 'Asian Sweets',
+    cook: 'Michael Wong', cookRating: 4.5, cookReviews: 14, cookCity: 'Oakland, CA', topCook: false,
+    distance: '1.9 mi', portions: 2, totalPortions: 4, price: 0, emoji: '🟤',
+    description: 'Crispy fried glutinous rice balls rolled in toasted sesame seeds and filled with lotus paste. Made fresh the morning of pickup. Free exchange — I make these every week and love sharing!',
+    allergens: ['sesame'],
+    pickupStart: '2026-04-05T09:00', pickupEnd: '2026-04-05T12:00',
+  },
+
+  // ── Jams & Preserves (4) ──
+  {
+    id: '11', title: 'Yuzu Honey Marmalade', cuisine: 'Jams & Preserves',
+    cook: 'Sarah Kim', cookRating: 4.8, cookReviews: 33, cookCity: 'Berkeley, CA', topCook: true,
+    distance: '2.0 mi', portions: 8, totalPortions: 12, price: 1200, emoji: '🍋',
+    description: 'Small-batch marmalade made with real Japanese yuzu zest and wildflower honey. No added pectin — sets naturally. Slightly bitter-sweet, incredibly fragrant. 240ml jar; shelf-stable 12 months unopened.',
+    allergens: ['none'],
+    pickupStart: '2026-04-07T10:00', pickupEnd: '2026-04-07T15:00',
+  },
+  {
+    id: '12', title: 'Ume Plum Jam', cuisine: 'Jams & Preserves',
+    cook: 'Yuki Tanaka', cookRating: 4.7, cookReviews: 19, cookCity: 'San Jose, CA', topCook: false,
+    distance: '2.8 mi', portions: 5, totalPortions: 6, price: 1400, emoji: '🫙',
+    description: 'Tart and complex ume plum jam made from California-grown ume. The flavor is deeply fruity with a pleasant sourness — unlike overly-sweet grocery store jams. Wonderful on toast or with cheese.',
+    allergens: ['none'],
+    pickupStart: '2026-04-06T12:00', pickupEnd: '2026-04-06T16:00',
+  },
+  {
+    id: '13', title: 'Lychee Rose Jam', cuisine: 'Jams & Preserves',
+    cook: 'Ann Pham', cookRating: 4.6, cookReviews: 12, cookCity: 'San Jose, CA', topCook: false,
+    distance: '3.4 mi', portions: 4, totalPortions: 6, price: 1000, emoji: '🌹',
+    description: 'Delicate jam made with fresh lychee and edible rose petals. Floral and fruity with a gentle sweetness. A unique pairing for scones, crepes, or yogurt. 180ml jar.',
+    allergens: ['none'],
+    pickupStart: '2026-04-08T11:00', pickupEnd: '2026-04-08T15:00',
+  },
+  {
+    id: '14', title: 'Longan & Ginger Preserve', cuisine: 'Jams & Preserves',
+    cook: 'Betty Lam', cookRating: 4.5, cookReviews: 9, cookCity: 'Milpitas, CA', topCook: false,
+    distance: '4.1 mi', portions: 3, totalPortions: 4, price: 1100, emoji: '🍯',
+    description: 'Dried longan fruit slow-cooked with fresh ginger into a thick preserve. Earthy, warming, and only mildly sweet. Excellent stirred into hot water as a tea or spooned over oatmeal.',
+    allergens: ['none'],
+    pickupStart: '2026-04-07T14:00', pickupEnd: '2026-04-07T17:00',
+  },
+
+  // ── Confections (4) ──
+  {
+    id: '15', title: 'Matcha White Chocolate Bark', cuisine: 'Confections',
+    cook: 'Rachel Chen', cookRating: 4.8, cookReviews: 28, cookCity: 'San Francisco, CA', topCook: true,
+    distance: '0.9 mi', portions: 6, totalPortions: 8, price: 1300, emoji: '🍫',
+    description: 'Thin white chocolate bark infused with ceremonial matcha and topped with toasted almond slivers and freeze-dried strawberry. Slightly bitter, not overly sweet. 100g slab per portion.',
     allergens: ['dairy', 'tree_nuts'],
-    pickupStart: '2026-03-28T11:00', pickupEnd: '2026-03-28T14:00',
+    pickupStart: '2026-04-05T12:00', pickupEnd: '2026-04-05T16:00',
   },
   {
-    id: '15', title: 'Dal Makhani', cuisine: 'Indian',
-    cook: 'Ananya Krishnan', cookRating: 4.7, cookReviews: 26, cookCity: 'Washington, DC', topCook: false,
-    distance: '0.7 mi', portions: 6, totalPortions: 8, price: 800, emoji: '🫕',
-    description: 'Black lentils and kidney beans slow-cooked overnight with butter, cream, and whole spices. A restaurant classic made at home. Pairs perfectly with rice or roti.',
-    allergens: ['dairy'],
-    pickupStart: '2026-03-28T13:00', pickupEnd: '2026-03-28T16:00',
+    id: '16', title: 'Chinese Peanut Brittle (花生糖)', cuisine: 'Confections',
+    cook: 'David Zhou', cookRating: 4.7, cookReviews: 34, cookCity: 'Los Angeles, CA', topCook: false,
+    distance: '1.3 mi', portions: 7, totalPortions: 10, price: 800, emoji: '🥜',
+    description: 'Crispy thin peanut brittle made the traditional way with maltose syrup instead of corn syrup. Less aggressively sweet than American brittle, with a strong roasted peanut flavor. 120g bag.',
+    allergens: ['peanuts'],
+    pickupStart: '2026-04-06T10:00', pickupEnd: '2026-04-06T15:00',
   },
-  // ── American ──
   {
-    id: '16', title: 'Slow-Smoked BBQ Brisket', cuisine: 'American',
-    cook: 'James Carter', cookRating: 4.8, cookReviews: 59, cookCity: 'Austin, TX', topCook: true,
-    distance: '1.5 mi', portions: 1, totalPortions: 3, price: 1500, emoji: '🥩',
-    description: 'Central Texas-style brisket smoked low and slow over post oak for 14 hours. Salt and pepper only. Bark is mahogany, interior is juicy and pulls apart beautifully.',
+    id: '17', title: 'Sesame Candy (芝麻糖)', cuisine: 'Confections',
+    cook: 'Mary Xu', cookRating: 4.6, cookReviews: 21, cookCity: 'San Mateo, CA', topCook: false,
+    distance: '2.2 mi', portions: 5, totalPortions: 8, price: 700, emoji: '🌰',
+    description: 'Crunchy sesame seed candy bars made with black and white sesame, bound with a light malt sugar syrup. Deeply nutty, naturally sweet. Wrapped individually, 6 pieces per portion.',
+    allergens: ['sesame'],
+    pickupStart: '2026-04-07T11:00', pickupEnd: '2026-04-07T15:00',
+  },
+  {
+    id: '18', title: 'Osmanthus Jelly', cuisine: 'Confections',
+    cook: 'Kevin Tang', cookRating: 4.9, cookReviews: 41, cookCity: 'Palo Alto, CA', topCook: true,
+    distance: '1.7 mi', portions: 4, totalPortions: 6, price: 900, emoji: '🌸',
+    description: 'Silky agar jelly infused with dried osmanthus flowers and a hint of wolfberry. Lightly sweet, beautifully floral. Served chilled. 4 individual cups per portion. Lasts 3 days refrigerated.',
     allergens: ['none'],
-    pickupStart: '2026-03-28T14:00', pickupEnd: '2026-03-28T17:00',
+    pickupStart: '2026-04-05T10:00', pickupEnd: '2026-04-05T14:00',
   },
+
+  // ── Dried & Packaged (4) ──
   {
-    id: '17', title: 'New England Clam Chowder', cuisine: 'American',
-    cook: 'Sarah Mitchell', cookRating: 4.7, cookReviews: 35, cookCity: 'Boston, MA', topCook: false,
-    distance: '0.6 mi', portions: 5, totalPortions: 6, price: 800, emoji: '🍲',
-    description: 'Thick, creamy chowder loaded with fresh clams, Yukon Gold potatoes, and smoky bacon. Made from scratch with a house-made clam stock. Served with oyster crackers.',
-    allergens: ['dairy', 'shellfish', 'gluten'],
-    pickupStart: '2026-03-28T11:00', pickupEnd: '2026-03-28T14:00',
-  },
-  {
-    id: '18', title: 'Fried Chicken & Waffles', cuisine: 'American',
-    cook: 'Marcus Johnson', cookRating: 4.9, cookReviews: 72, cookCity: 'Atlanta, GA', topCook: true,
-    distance: '1.0 mi', portions: 4, totalPortions: 5, price: 1000, emoji: '🧇',
-    description: 'Buttermilk-brined, double-fried chicken on top of crispy Belgian waffles. Drizzled with hot honey and served with whipped maple butter. A Southern Sunday tradition.',
-    allergens: ['gluten', 'dairy', 'eggs'],
-    pickupStart: '2026-03-28T10:00', pickupEnd: '2026-03-28T13:00',
-  },
-  // ── Vietnamese ──
-  {
-    id: '19', title: 'Phở Bò', cuisine: 'Vietnamese',
-    cook: 'Linh Nguyen', cookRating: 4.8, cookReviews: 43, cookCity: 'Portland, OR', topCook: false,
-    distance: '0.8 mi', portions: 6, totalPortions: 7, price: 900, emoji: '🍜',
-    description: 'Slow-simmered beef bone broth with charred ginger and onion, star anise, cloves, and cinnamon. Served with rice noodles, rare beef slices, and a full herb plate.',
-    allergens: ['gluten', 'soy'],
-    pickupStart: '2026-03-28T11:00', pickupEnd: '2026-03-28T14:00',
-  },
-  {
-    id: '20', title: 'Bánh Mì Thịt Nướng', cuisine: 'Vietnamese',
-    cook: 'An Tran', cookRating: 4.7, cookReviews: 19, cookCity: 'Seattle, WA', topCook: false,
-    distance: '1.2 mi', portions: 8, totalPortions: 10, price: 0, emoji: '🥖',
-    description: 'Crispy French baguette stuffed with lemongrass grilled pork, house pickled daikon and carrot, jalapeños, cilantro, and housemade sriracha mayo. Free this week!',
-    allergens: ['gluten', 'soy'],
-    pickupStart: '2026-03-28T12:00', pickupEnd: '2026-03-28T15:00',
-  },
-  // ── Thai ──
-  {
-    id: '21', title: 'Green Curry & Jasmine Rice', cuisine: 'Thai',
-    cook: 'Nong Saesow', cookRating: 4.9, cookReviews: 57, cookCity: 'Miami, FL', topCook: true,
-    distance: '0.9 mi', portions: 5, totalPortions: 6, price: 900, emoji: '🍛',
-    description: 'Fragrant green curry with chicken, Thai eggplant, and bamboo shoots in coconut milk. House-ground curry paste with fresh galangal and kaffir lime leaves.',
-    allergens: ['shellfish'],
-    pickupStart: '2026-03-28T12:00', pickupEnd: '2026-03-28T15:00',
-  },
-  {
-    id: '22', title: 'Pad Thai', cuisine: 'Thai',
-    cook: 'Pim Charoenwong', cookRating: 4.7, cookReviews: 38, cookCity: 'Los Angeles, CA', topCook: false,
-    distance: '1.6 mi', portions: 7, totalPortions: 8, price: 800, emoji: '🍝',
-    description: 'Wok-tossed rice noodles with shrimp, tofu, egg, and bean sprouts in a tamarind-palm sugar sauce. Topped with crushed peanuts, lime, and dried chili.',
-    allergens: ['peanuts', 'shellfish', 'eggs', 'soy'],
-    pickupStart: '2026-03-28T13:00', pickupEnd: '2026-03-28T16:00',
-  },
-  // ── Korean ──
-  {
-    id: '23', title: 'Kimchi Jjigae', cuisine: 'Korean',
-    cook: 'Jisoo Park', cookRating: 4.8, cookReviews: 41, cookCity: 'Seattle, WA', topCook: false,
-    distance: '0.5 mi', portions: 4, totalPortions: 6, price: 800, emoji: '🫕',
-    description: 'Deeply savory kimchi stew with well-fermented kimchi, tender pork belly, silken tofu, and green onions. Simmered low and slow for maximum umami depth.',
-    allergens: ['soy', 'shellfish'],
-    pickupStart: '2026-03-28T11:30', pickupEnd: '2026-03-28T14:30',
-  },
-  {
-    id: '24', title: 'LA Galbi (Short Ribs)', cuisine: 'Korean',
-    cook: 'Min-jun Lee', cookRating: 5.0, cookReviews: 93, cookCity: 'New York, NY', topCook: true,
-    distance: '1.9 mi', portions: 3, totalPortions: 4, price: 1600, emoji: '🥩',
-    description: 'Flanken-cut beef short ribs marinated for 24 hours in Asian pear, soy, garlic, and sesame oil. Grilled over charcoal until caramelized and smoky.',
-    allergens: ['soy', 'sesame', 'tree_nuts'],
-    pickupStart: '2026-03-28T14:00', pickupEnd: '2026-03-28T17:00',
-  },
-  {
-    id: '25', title: 'Bibimbap', cuisine: 'Korean',
-    cook: 'Soyeon Kim', cookRating: 4.6, cookReviews: 27, cookCity: 'San Francisco, CA', topCook: false,
-    distance: '0.7 mi', portions: 5, totalPortions: 6, price: 900, emoji: '🍱',
-    description: 'Stone bowl rice topped with seasoned vegetables, bulgogi beef, fried egg, and house-made gochujang. Served in a hot dolsot for the crispy bottom crust.',
-    allergens: ['soy', 'sesame', 'eggs'],
-    pickupStart: '2026-03-28T12:00', pickupEnd: '2026-03-28T15:00',
-  },
-  // ── Ethiopian ──
-  {
-    id: '26', title: 'Doro Wat with Injera', cuisine: 'Ethiopian',
-    cook: 'Tigist Haile', cookRating: 4.9, cookReviews: 50, cookCity: 'Washington, DC', topCook: true,
-    distance: '1.1 mi', portions: 4, totalPortions: 6, price: 0, emoji: '🫓',
-    description: 'National dish of Ethiopia — slow-cooked chicken in a fiery berbere and niter kibbeh sauce with hard-boiled eggs. Served on sour injera flatbread. Free this week to share culture.',
-    allergens: ['eggs', 'gluten'],
-    pickupStart: '2026-03-28T12:00', pickupEnd: '2026-03-28T15:00',
-  },
-  {
-    id: '27', title: 'Tibs & Injera Platter', cuisine: 'Ethiopian',
-    cook: 'Almaz Kebede', cookRating: 4.8, cookReviews: 36, cookCity: 'Minneapolis, MN', topCook: false,
-    distance: '2.0 mi', portions: 3, totalPortions: 4, price: 1000, emoji: '🥘',
-    description: 'Sautéed lamb tibs with jalapeños, rosemary, and onions, plus three vegetable sides (misir, gomen, and fosolia) on fresh injera. A full Ethiopian feast.',
-    allergens: ['gluten'],
-    pickupStart: '2026-03-28T13:00', pickupEnd: '2026-03-28T16:00',
-  },
-  // ── Greek ──
-  {
-    id: '28', title: 'Spanakopita', cuisine: 'Greek',
-    cook: 'Elena Papadopoulos', cookRating: 4.7, cookReviews: 31, cookCity: 'Chicago, IL', topCook: false,
-    distance: '0.8 mi', portions: 6, totalPortions: 8, price: 800, emoji: '🥬',
-    description: 'Flaky phyllo triangles filled with spinach, feta, and herbs. Brushed with olive oil and baked until golden. My yiayia\'s recipe from Thessaloniki.',
-    allergens: ['gluten', 'dairy', 'eggs'],
-    pickupStart: '2026-03-28T11:00', pickupEnd: '2026-03-28T14:00',
-  },
-  // ── Lebanese ──
-  {
-    id: '29', title: 'Lamb Kofta & Hummus', cuisine: 'Lebanese',
-    cook: 'Layla Khalil', cookRating: 4.9, cookReviews: 62, cookCity: 'Miami, FL', topCook: true,
-    distance: '1.3 mi', portions: 4, totalPortions: 5, price: 1200, emoji: '🫕',
-    description: 'Grilled ground lamb kofta spiced with allspice, cinnamon, and pine nuts, served over silky house-made hummus and warm pita. Finished with pomegranate molasses.',
-    allergens: ['gluten', 'sesame', 'tree_nuts'],
-    pickupStart: '2026-03-28T12:00', pickupEnd: '2026-03-28T15:00',
-  },
-  {
-    id: '30', title: 'Kibbeh Platter', cuisine: 'Lebanese',
-    cook: 'Omar Nassar', cookRating: 4.8, cookReviews: 44, cookCity: 'Denver, CO', topCook: false,
-    distance: '1.7 mi', portions: 5, totalPortions: 6, price: 1000, emoji: '🧆',
-    description: 'Baked kibbeh — a shell of bulgur wheat and lamb encasing a savory filling of spiced ground beef, onions, and pine nuts. Served with yogurt sauce and fattoush.',
+    id: '19', title: 'Matcha Almond Granola', cuisine: 'Dried & Packaged',
+    cook: 'Jessica Wu', cookRating: 4.7, cookReviews: 26, cookCity: 'San Francisco, CA', topCook: false,
+    distance: '1.4 mi', portions: 8, totalPortions: 10, price: 1100, emoji: '🌿',
+    description: 'Crunchy oat granola toasted with matcha powder, sliced almonds, pumpkin seeds, and a light drizzle of honey. Much less sweet than commercial granola. 250g resealable bag.',
     allergens: ['gluten', 'tree_nuts'],
-    pickupStart: '2026-03-28T13:00', pickupEnd: '2026-03-28T16:00',
+    pickupStart: '2026-04-08T10:00', pickupEnd: '2026-04-08T16:00',
+  },
+  {
+    id: '20', title: 'Chrysanthemum & Wolfberry Tea', cuisine: 'Dried & Packaged',
+    cook: 'Paul Lin', cookRating: 4.8, cookReviews: 30, cookCity: 'San Francisco, CA', topCook: true,
+    distance: '0.8 mi', portions: 10, totalPortions: 15, price: 900, emoji: '🌼',
+    description: 'Loose-leaf blend of dried chrysanthemum flowers, wolfberry (goji), and rock sugar. Cooling in summer, comforting in winter. Just steep in hot water for 5 minutes. 50g bag makes ~20 cups.',
+    allergens: ['none'],
+    pickupStart: '2026-04-06T09:00', pickupEnd: '2026-04-06T17:00',
+  },
+  {
+    id: '21', title: 'Homemade Chili Crisp', cuisine: 'Dried & Packaged',
+    cook: 'Nina Zhao', cookRating: 4.9, cookReviews: 55, cookCity: 'Los Angeles, CA', topCook: true,
+    distance: '1.1 mi', portions: 6, totalPortions: 8, price: 1200, emoji: '🌶️',
+    description: 'Fragrant, crunchy chili crisp made with Sichuan dried chilies, crispy shallots, garlic, and fermented black beans in quality neutral oil. Not as oily or salty as Lao Gan Ma. 180ml jar.',
+    allergens: ['soy'],
+    pickupStart: '2026-04-07T12:00', pickupEnd: '2026-04-07T17:00',
+  },
+  {
+    id: '22', title: 'Five-Spice Roasted Cashews', cuisine: 'Dried & Packaged',
+    cook: 'Eric Liu', cookRating: 4.6, cookReviews: 18, cookCity: 'Sunnyvale, CA', topCook: false,
+    distance: '2.5 mi', portions: 7, totalPortions: 10, price: 900, emoji: '🥜',
+    description: 'Raw cashews slow-roasted with five-spice powder, a touch of brown sugar, and sea salt. Savory-sweet, deeply aromatic. 150g bag. No artificial flavors or coatings.',
+    allergens: ['tree_nuts'],
+    pickupStart: '2026-04-05T13:00', pickupEnd: '2026-04-05T17:00',
+  },
+
+  // ── Fermented (3) ──
+  {
+    id: '23', title: 'House Kimchi (Vegan)', cuisine: 'Fermented',
+    cook: 'Helen Park', cookRating: 4.8, cookReviews: 47, cookCity: 'Los Angeles, CA', topCook: true,
+    distance: '0.9 mi', portions: 5, totalPortions: 8, price: 1000, emoji: '🥬',
+    description: 'Classic napa cabbage kimchi fermented for 3 days. Vegan — uses doenjang instead of fish sauce. Medium spicy, pleasantly sour, not overly funky. 400g jar. My Korean grandmother\'s recipe adapted for modern kitchens.',
+    allergens: ['none'],
+    pickupStart: '2026-04-06T11:00', pickupEnd: '2026-04-06T15:00',
+  },
+  {
+    id: '24', title: 'Homemade Shiro Miso Paste', cuisine: 'Fermented',
+    cook: 'James Sato', cookRating: 4.7, cookReviews: 22, cookCity: 'Berkeley, CA', topCook: false,
+    distance: '2.1 mi', portions: 4, totalPortions: 6, price: 1300, emoji: '🫙',
+    description: 'White (shiro) miso fermented for 6 months using organic soybeans and koji. Mild, slightly sweet, and incredibly versatile. Use in soups, marinades, or salad dressings. 200g tub.',
+    allergens: ['soy'],
+    pickupStart: '2026-04-07T10:00', pickupEnd: '2026-04-07T15:00',
+  },
+  {
+    id: '25', title: 'Sichuan Paocai (泡菜)', cuisine: 'Fermented',
+    cook: 'Lucy Cheng', cookRating: 4.6, cookReviews: 16, cookCity: 'San Francisco, CA', topCook: false,
+    distance: '1.5 mi', portions: 3, totalPortions: 5, price: 0, emoji: '🫙',
+    description: 'Quick-pickled Sichuan vegetables (radish, carrot, celery) in a lightly spiced brine. Crunchy, tangy, barely spicy. Fermented 48 hours. Free — I make a big batch weekly and always have extra!',
+    allergens: ['none'],
+    pickupStart: '2026-04-05T10:00', pickupEnd: '2026-04-05T14:00',
+  },
+
+  // ── Noodles & Pantry (3) ──
+  {
+    id: '26', title: 'Handmade Dried Wheat Noodles', cuisine: 'Noodles & Pantry',
+    cook: 'Sandra Wu', cookRating: 4.7, cookReviews: 29, cookCity: 'Daly City, CA', topCook: false,
+    distance: '3.0 mi', portions: 4, totalPortions: 6, price: 1000, emoji: '🍜',
+    description: 'Sun-dried thin wheat noodles made with just flour, water, and salt. No preservatives, no additives. Cooks in 3 minutes. 300g bundle per portion — enough for 2 servings of noodle soup.',
+    allergens: ['gluten'],
+    pickupStart: '2026-04-08T11:00', pickupEnd: '2026-04-08T16:00',
+  },
+  {
+    id: '27', title: 'Scallion Ginger Confit Oil', cuisine: 'Noodles & Pantry',
+    cook: 'Roger Chan', cookRating: 4.8, cookReviews: 36, cookCity: 'San Francisco, CA', topCook: true,
+    distance: '0.7 mi', portions: 6, totalPortions: 8, price: 1100, emoji: '🧅',
+    description: 'Slow-infused neutral oil with crispy scallion, ginger, and a touch of white pepper. The ultimate flavor booster for rice, noodles, or dumplings. 120ml jar. Inspired by Hong Kong cha chaan teng.',
+    allergens: ['none'],
+    pickupStart: '2026-04-06T12:00', pickupEnd: '2026-04-06T16:00',
+  },
+  {
+    id: '28', title: 'Homemade XO Sauce', cuisine: 'Noodles & Pantry',
+    cook: 'Monica Yip', cookRating: 4.9, cookReviews: 61, cookCity: 'Los Angeles, CA', topCook: true,
+    distance: '1.2 mi', portions: 5, totalPortions: 6, price: 1800, emoji: '🫙',
+    description: 'Luxurious XO sauce made with dried scallop, dried shrimp, Jinhua ham, and chili. A Hong Kong classic that takes 3 hours to make. Deeply savory, mildly spicy — transforms any dish. 100ml jar.',
+    allergens: ['shellfish', 'soy'],
+    pickupStart: '2026-04-07T11:00', pickupEnd: '2026-04-07T15:00',
+  },
+
+  // ── Cookies & Biscuits (3) ──
+  {
+    id: '29', title: 'Matcha Almond Shortbread', cuisine: 'Cookies & Biscuits',
+    cook: 'Diana Lim', cookRating: 4.8, cookReviews: 38, cookCity: 'San Francisco, CA', topCook: true,
+    distance: '1.0 mi', portions: 7, totalPortions: 10, price: 1000, emoji: '🍪',
+    description: 'Buttery Scottish-style shortbread with ceremonial matcha and toasted almond flour. Only lightly sweetened — the matcha bitterness balances beautifully. 10 cookies per portion, boxed.',
+    allergens: ['gluten', 'dairy', 'eggs', 'tree_nuts'],
+    pickupStart: '2026-04-05T11:00', pickupEnd: '2026-04-05T15:00',
+  },
+  {
+    id: '30', title: 'Black Sesame Crinkle Cookies', cuisine: 'Cookies & Biscuits',
+    cook: 'Frank Zhou', cookRating: 4.7, cookReviews: 24, cookCity: 'San Jose, CA', topCook: false,
+    distance: '2.4 mi', portions: 5, totalPortions: 8, price: 900, emoji: '🍪',
+    description: 'Chewy crinkle cookies made with freshly ground black sesame paste and a tiny coating of powdered sugar. Deeply nutty, not too sweet. 8 cookies per portion. Stays soft for 4 days in an airtight container.',
+    allergens: ['gluten', 'dairy', 'eggs', 'sesame'],
+    pickupStart: '2026-04-06T10:00', pickupEnd: '2026-04-06T14:00',
   },
 ];
 
-// ── Recipe templates by cuisine ───────────────────────────────────────────────
+// ── Recipe templates by category ─────────────────────────────────────────────
 
 const RECIPES: Record<string, Recipe> = {
-  Chinese: {
-    cookTimeMins: 25, servings: 2,
-    ingredients: ['450g boneless chicken thigh, cubed','½ cup roasted peanuts','8 dried red chilies','1 tsp Sichuan peppercorns','3 cloves garlic, minced','1 tbsp fresh ginger','2 tbsp soy sauce','1 tbsp dark soy sauce','1 tbsp Shaoxing wine','1 tsp cornstarch','1 tbsp doubanjiang','1 tsp sesame oil','1 tsp sugar'],
-    steps: ['Marinate chicken in soy sauce, Shaoxing wine, and cornstarch for 15 minutes.','Mix sauce: combine dark soy, doubanjiang, sugar, and sesame oil.','Heat wok until smoking. Fry chilies and Sichuan peppercorns 30 seconds.','Add chicken, sear undisturbed 90 seconds, then toss until golden.','Push chicken aside; stir-fry garlic and ginger 30 seconds.','Pour in sauce and toss to coat everything evenly.','Add peanuts and scallions. Stir-fry 60 seconds over high heat.','Plate and serve with steamed jasmine rice.'],
+  'Baked Goods': {
+    cookTimeMins: 70,
+    servings: 8,
+    ingredients: [
+      '200g all-purpose flour',
+      '15g ceremonial matcha powder',
+      '180g unsalted butter, softened',
+      '120g caster sugar (adjust to taste)',
+      '3 large eggs, room temperature',
+      '1 tsp vanilla extract',
+      '1/2 tsp baking powder',
+      'Pinch of sea salt',
+    ],
+    steps: [
+      'Preheat oven to 170°C (340°F). Grease and line a 9×5" loaf pan.',
+      'Sift flour, matcha, baking powder, and salt together. Set aside.',
+      'Beat butter and sugar with a hand mixer until pale and fluffy, about 4 minutes.',
+      'Add eggs one at a time, beating well after each addition. Mix in vanilla.',
+      'Fold in the flour mixture in three additions until just combined — do not overmix.',
+      'Pour into prepared pan and smooth the top. Tap gently to release air bubbles.',
+      'Bake 55–60 minutes until a skewer inserted in the center comes out clean.',
+      'Cool in pan for 10 minutes, then turn out onto a wire rack to cool completely.',
+    ],
   },
-  Mexican: {
-    cookTimeMins: 40, servings: 4,
-    ingredients: ['600g pork shoulder, thin-sliced','2 tbsp achiote paste','3 guajillo chilies, toasted','1 chipotle in adobo','4 cloves garlic','½ cup pineapple juice','2 tbsp apple cider vinegar','1 tsp cumin','1 tsp oregano','Salt to taste','Corn tortillas to serve','Fresh cilantro and white onion'],
-    steps: ['Blend achiote, guajillo, chipotle, garlic, pineapple juice, vinegar, and spices into a smooth marinade.','Coat pork slices in marinade and refrigerate at least 2 hours, ideally overnight.','Stack pork slices and roast at 425°F for 30 minutes until caramelized.','Rest 5 minutes, then slice thinly against the grain.','Warm tortillas on a dry comal until lightly charred.','Fill tortillas with pork, pineapple chunks, cilantro, and onion.','Serve with salsa verde and lime wedges.'],
+  'Asian Sweets': {
+    cookTimeMins: 45,
+    servings: 8,
+    ingredients: [
+      '200g glutinous rice flour',
+      '30g cornstarch',
+      '50g sugar',
+      '250ml water',
+      '200ml coconut cream',
+      '300g ripe mango, cubed',
+      '100ml heavy cream, whipped',
+      'Toasted sesame seeds for dusting',
+    ],
+    steps: [
+      'Mix glutinous rice flour, cornstarch, and sugar in a heatproof bowl.',
+      'Whisk in water and coconut cream until completely smooth.',
+      'Cover with plastic wrap and microwave on medium for 3 minutes, stir, then 2 more minutes.',
+      'Stir vigorously until a smooth, pliable dough forms. Let cool covered.',
+      'Fold mango cubes into whipped cream. Refrigerate filling while dough cools.',
+      'Dust work surface with cornstarch. Divide dough into 8 portions.',
+      'Flatten each portion, place a spoonful of filling in center, and pinch edges to seal.',
+      'Roll in sesame seeds and serve immediately or refrigerate for up to 2 days.',
+    ],
   },
-  Italian: {
-    cookTimeMins: 90, servings: 4,
-    ingredients: ['400g fresh lasagna sheets','500g beef and pork Bolognese','500ml béchamel sauce','200g aged Parmigiano-Reggiano, grated','1 cup whole milk mozzarella','2 tbsp unsalted butter','Nutmeg to taste','Salt and black pepper'],
-    steps: ['Prepare Bolognese: brown mixed mince with soffritto, add wine, tomatoes, and simmer 2 hours.','Make béchamel: melt butter, whisk in flour, add warm milk gradually, season with nutmeg.','Blanch lasagna sheets 1 minute in salted water; lay flat on oiled surface.','Layer: béchamel → pasta → Bolognese → Parmigiano. Repeat 6 times.','Top layer: béchamel, mozzarella, and a generous shower of Parmigiano.','Cover with foil and bake at 375°F for 40 minutes. Uncover last 15 minutes.','Rest 20 minutes before cutting — this is non-negotiable.','Serve with crusty bread and a simple green salad.'],
+  'Jams & Preserves': {
+    cookTimeMins: 60,
+    servings: 24,
+    ingredients: [
+      '500g yuzu (or Meyer lemon), washed',
+      '400g caster sugar',
+      '3 tbsp wildflower honey',
+      '200ml water',
+      '1 tbsp lemon juice',
+      '2 sterilized 240ml jars',
+    ],
+    steps: [
+      'Scrub yuzu well. Remove zest in thin strips, avoiding the white pith.',
+      'Halve and juice all the fruit. Strain juice into a heavy-bottomed pot.',
+      'Blanch the zest in boiling water for 2 minutes, drain, and repeat once more.',
+      'Combine juice, blanched zest, water, and sugar in the pot. Stir over medium heat until sugar dissolves.',
+      'Bring to a boil, skimming any foam. Cook for 20–25 minutes until thickened.',
+      'Test set: drop a small amount on a cold plate — it should wrinkle when pushed.',
+      'Stir in honey and lemon juice. Remove from heat.',
+      'Ladle into sterilized jars, seal immediately, and invert for 5 minutes. Store in a cool dark place.',
+    ],
   },
-  Japanese: {
-    cookTimeMins: 30, servings: 2,
-    ingredients: ['500g pork bones (neck and feet)','200g chashu pork belly','2 soft-boiled marinated eggs','200g fresh ramen noodles','2 sheets nori','Bamboo shoots (menma)','2 tbsp tare (soy-mirin seasoning)','Green onions to garnish'],
-    steps: ['Blanch pork bones in boiling water 5 minutes; rinse thoroughly.','Simmer cleaned bones in fresh water 12–18 hours until broth is milky white.','Season broth with tare to taste.','Roll and tie pork belly; braise in soy, mirin, sake 3 hours.','Soft-boil eggs 6½ minutes; marinate overnight in soy-mirin mixture.','Cook ramen noodles per package, drain, and portion into bowls.','Ladle boiling broth over noodles.','Top with sliced chashu, halved egg, nori, bamboo shoots, and green onions.'],
+  'Confections': {
+    cookTimeMins: 30,
+    servings: 12,
+    ingredients: [
+      '300g good-quality white chocolate, finely chopped',
+      '15g ceremonial matcha powder, sifted',
+      '50g sliced almonds, lightly toasted',
+      '30g freeze-dried strawberry pieces',
+      '1/4 tsp flaky sea salt',
+      'Parchment-lined baking sheet',
+    ],
+    steps: [
+      'Melt white chocolate in a heatproof bowl over barely simmering water, stirring gently.',
+      'Remove from heat. Sift in matcha and stir until fully incorporated and smooth.',
+      'Pour onto a parchment-lined baking sheet and spread into a thin even layer.',
+      'Immediately scatter almonds, freeze-dried strawberry, and sea salt over the surface.',
+      'Refrigerate for 30 minutes until fully set and hard.',
+      'Break into irregular shards. Store in an airtight container in a cool place for up to 2 weeks.',
+    ],
   },
-  Indian: {
-    cookTimeMins: 45, servings: 3,
-    ingredients: ['700g chicken thighs, boneless','1 cup tomato purée','½ cup heavy cream','3 tbsp butter','1 tbsp ginger-garlic paste','1 tsp garam masala','1 tsp cumin','1 tsp coriander','½ tsp turmeric','1 tsp kashmiri chili powder','Salt to taste','Fresh cilantro to garnish'],
-    steps: ['Marinate chicken in yogurt, ginger-garlic paste, and spices for 30 minutes.','Grill or broil chicken until slightly charred. Set aside.','Melt butter; sauté onions until golden. Add ginger-garlic paste.','Add tomato purée and cook until oil separates, ~10 minutes.','Blend sauce smooth. Return to pan, add spices, simmer 5 minutes.','Add cream and charred chicken. Simmer 10 minutes.','Finish with kasuri methi and a knob of cold butter.','Serve with garlic naan or basmati rice.'],
+  'Dried & Packaged': {
+    cookTimeMins: 40,
+    servings: 10,
+    ingredients: [
+      '300g rolled oats',
+      '10g matcha powder',
+      '100g raw almonds, roughly chopped',
+      '50g pumpkin seeds',
+      '60ml neutral oil',
+      '60ml raw honey',
+      '1 tsp vanilla extract',
+      '1/4 tsp sea salt',
+    ],
+    steps: [
+      'Preheat oven to 160°C (320°F). Line a large baking sheet with parchment.',
+      'Whisk together oil, honey, vanilla, and salt in a large bowl.',
+      'Add oats, matcha, almonds, and pumpkin seeds. Toss until evenly coated.',
+      'Spread in a thin, even layer on the baking sheet — resist the urge to stir during baking.',
+      'Bake for 35–40 minutes until golden, rotating the pan halfway through.',
+      'Remove from oven and let cool completely undisturbed — this is how clusters form.',
+      'Break into pieces and transfer to airtight bags. Keeps up to 3 weeks at room temperature.',
+    ],
   },
-  American: {
-    cookTimeMins: 840, servings: 6,
-    ingredients: ['3 kg beef brisket (point and flat)','3 tbsp kosher salt','2 tbsp coarse black pepper','Post oak or hickory wood chunks','Optional: 1 tsp garlic powder'],
-    steps: ['Trim brisket to ¼-inch fat cap. Do not over-trim.','Season generously with salt and pepper only. Rest at room temp 1 hour.','Set smoker to 225°F with post oak. Maintain consistent temperature.','Smoke fat-side up for 6 hours, spritzing with apple cider vinegar every 2 hours.','Wrap in butcher paper (Texas crutch). Return to smoker.','Continue smoking 6–8 hours until internal temp reaches 203°F.','Rest wrapped brisket in a cooler for 1–2 hours. This step is critical.','Slice against the grain ¼-inch thick. Bark should be dark and crusty.'],
+  'Fermented': {
+    cookTimeMins: 30,
+    servings: 8,
+    ingredients: [
+      '1 medium napa cabbage (about 1.5kg)',
+      '3 tbsp coarse sea salt (non-iodized)',
+      '1 tbsp gochugaru (Korean chili flakes)',
+      '4 cloves garlic, minced',
+      '1 tsp fresh ginger, grated',
+      '3 stalks green onion, cut into 1" pieces',
+      '1 tsp sugar',
+      '1 tbsp doenjang (soybean paste) — for vegan version',
+    ],
+    steps: [
+      'Quarter the cabbage lengthwise and cut crosswise into 2-inch pieces.',
+      'Toss with salt in a large bowl. Let stand for 1–2 hours until wilted, turning occasionally.',
+      'Rinse cabbage thoroughly under cold water twice. Squeeze out as much water as possible.',
+      'Mix gochugaru, garlic, ginger, sugar, and doenjang into a paste.',
+      'Add drained cabbage and green onion to the paste. Toss with gloved hands until evenly coated.',
+      'Pack tightly into clean glass jars, pressing down to eliminate air pockets.',
+      'Leave 1 inch of headspace. Seal and leave at room temperature for 24–48 hours to ferment.',
+      'Refrigerate once pleasantly tangy. Keeps for up to 3 months refrigerated.',
+    ],
   },
-  Vietnamese: {
-    cookTimeMins: 360, servings: 4,
-    ingredients: ['1 kg beef marrow bones and oxtail','200g rice noodles (bánh phở)','300g beef sirloin, thin-sliced','1 onion, charred','4-inch ginger knob, charred','3 star anise','4 cloves','1 cinnamon stick','Fish sauce to taste','Bean sprouts, Thai basil, lime to serve'],
-    steps: ['Char onion and ginger directly over flame until blackened. Rinse.','Blanch bones in boiling water 5 minutes; discard water, rinse bones.','Add bones to fresh water with charred aromatics. Simmer 6 hours, skimming regularly.','Toast star anise, cloves, and cinnamon in dry pan; add to broth last 30 minutes.','Season with fish sauce and rock sugar. Strain broth, keep hot.','Soak rice noodles per package; divide into bowls.','Lay raw sirloin slices over noodles; ladle boiling broth over (it cooks the beef).','Serve with a plate of bean sprouts, Thai basil, lime, and hoisin/sriracha.'],
+  'Noodles & Pantry': {
+    cookTimeMins: 20,
+    servings: 6,
+    ingredients: [
+      '1 cup neutral oil (e.g. canola)',
+      '6 stalks scallion, cut into 2" pieces',
+      '4 slices fresh ginger',
+      '2 shallots, sliced',
+      '1/2 tsp white pepper',
+      '1 tsp sea salt',
+    ],
+    steps: [
+      'Combine scallion, ginger, and shallots in a small saucepan with the oil.',
+      'Place over medium-low heat. The oil should gently bubble — not sizzle aggressively.',
+      'Cook undisturbed for 15 minutes until scallion is golden and crispy.',
+      'Add white pepper and salt in the final minute.',
+      'Strain the oil through a fine mesh sieve into a clean jar. Reserve crispy bits separately.',
+      'Let cool to room temperature. Combine strained oil and crispy bits back in the jar.',
+      'Seal and refrigerate. Lasts 3 weeks. Use on rice, noodles, congee, or dumplings.',
+    ],
   },
-  Thai: {
-    cookTimeMins: 30, servings: 3,
-    ingredients: ['400g chicken thigh, cut into chunks','400ml full-fat coconut milk','3 tbsp green curry paste','200g Thai eggplant, quartered','100g bamboo shoots','4 kaffir lime leaves','2 tbsp fish sauce','1 tsp palm sugar','Fresh Thai basil','Jasmine rice to serve'],
-    steps: ['Heat 4 tbsp coconut cream in wok until it splits and sizzles.','Fry curry paste in cream 2 minutes until fragrant.','Add chicken; stir-fry until outside turns white, ~3 minutes.','Pour in remaining coconut milk. Bring to a gentle simmer.','Add eggplant and bamboo shoots. Cook 5 minutes until tender.','Season with fish sauce and palm sugar. Adjust to taste.','Tear in kaffir lime leaves and Thai basil off heat.','Serve over jasmine rice.'],
-  },
-  Korean: {
-    cookTimeMins: 35, servings: 2,
-    ingredients: ['300g well-fermented kimchi, chopped','200g pork belly, sliced','1 block soft tofu, cubed','1 cup kimchi brine','2 cups anchovy-kelp stock','1 tbsp gochugaru','1 tbsp soy sauce','1 tsp sesame oil','Green onions and tofu to garnish'],
-    steps: ['Sauté pork belly in a clay pot or heavy pot until fat renders and edges crisp.','Add kimchi and stir-fry with pork 3 minutes.','Add kimchi brine, stock, and gochugaru. Bring to boil.','Reduce heat; simmer 20 minutes until kimchi is silky and broth is deep red.','Add tofu cubes gently. Simmer 5 more minutes without stirring.','Season with soy sauce; finish with sesame oil.','Scatter green onions on top. Serve boiling hot.','Eat with steamed rice and banchan.'],
-  },
-  Ethiopian: {
-    cookTimeMins: 120, servings: 4,
-    ingredients: ['1 whole chicken, cut into pieces','4 hard-boiled eggs, pricked','2 cups red onion, very finely chopped','3 tbsp niter kibbeh (spiced butter)','3 tbsp berbere spice blend','1 cup red wine or tej','4 cloves garlic','1 tbsp fresh ginger','Salt to taste','Injera flatbread to serve'],
-    steps: ['Caramelize onions in dry pot over medium heat 20 minutes until jammy. No oil.','Add niter kibbeh and berbere; cook 5 minutes until fragrant.','Add garlic and ginger; stir 2 minutes.','Add chicken pieces; turn to coat in sauce.','Pour in wine; bring to simmer. Cover and cook 45 minutes.','Add hard-boiled eggs (prick them so sauce penetrates). Cook 15 more minutes.','Sauce should be thick and glossy. Adjust salt.','Serve on injera with eggs halved on top.'],
-  },
-  Greek: {
-    cookTimeMins: 60, servings: 6,
-    ingredients: ['500g fresh spinach, wilted and squeezed','300g feta cheese, crumbled','2 eggs','1 onion, finely diced','3 cloves garlic','2 tbsp fresh dill','Fresh mint leaves','16 sheets phyllo dough','½ cup olive oil','Black pepper to taste'],
-    steps: ['Wilt spinach, squeeze thoroughly dry, and chop roughly.','Mix spinach with crumbled feta, eggs, onion, garlic, dill, and mint. Season.','Brush baking dish with olive oil. Layer 8 phyllo sheets, brushing each with oil.','Spread filling evenly. Layer remaining 8 sheets on top, brushing each.','Score top into triangles with a sharp knife. Brush surface with egg wash.','Bake at 375°F for 40–45 minutes until deeply golden.','Rest 15 minutes before cutting through score lines.','Serve warm or at room temperature.'],
-  },
-  Lebanese: {
-    cookTimeMins: 30, servings: 4,
-    ingredients: ['500g ground lamb','1 onion, very finely grated','2 tbsp parsley, minced','1 tsp allspice','½ tsp cinnamon','¼ tsp nutmeg','½ cup pine nuts, toasted','400g chickpeas, cooked','4 tbsp tahini','2 tbsp lemon juice','2 cloves garlic','Warm pita to serve'],
-    steps: ['Mix lamb with grated onion, parsley, allspice, cinnamon, nutmeg, and salt.','Knead mixture 3 minutes until cohesive. Rest 30 minutes in fridge.','Shape onto flat metal skewers in elongated ovals. Flatten slightly.','Grill over high heat 3–4 minutes per side until charred and cooked through.','Make hummus: blend chickpeas, tahini, lemon, garlic until ultra-smooth. Season.','Swipe hummus across a plate in a circular motion.','Lay kofta on hummus. Scatter pine nuts and paprika oil.','Serve with warm pita, sliced tomato, and pickled turnips.'],
+  'Cookies & Biscuits': {
+    cookTimeMins: 55,
+    servings: 10,
+    ingredients: [
+      '225g unsalted butter, room temperature',
+      '80g powdered sugar (sifted)',
+      '15g ceremonial matcha, sifted',
+      '250g all-purpose flour',
+      '40g toasted almond flour',
+      '1/4 tsp sea salt',
+    ],
+    steps: [
+      'Beat butter with an electric mixer until smooth and creamy, about 2 minutes.',
+      'Add powdered sugar and beat on medium until light and fluffy, 3 minutes.',
+      'Sift in matcha, flour, almond flour, and salt. Mix on low until just combined.',
+      'Shape dough into a 2-inch diameter log. Wrap in plastic wrap and refrigerate 1 hour.',
+      'Preheat oven to 160°C (320°F). Line two baking sheets with parchment.',
+      'Slice log into 1cm-thick rounds. Place on sheets with 1 inch between each cookie.',
+      'Bake 18–20 minutes until edges are just set — centers should still look slightly underdone.',
+      'Cool on the pan for 5 minutes before transferring. They firm up as they cool.',
+    ],
   },
 };
-
-export function getRecipe(cuisine: string): Recipe {
-  return RECIPES[cuisine] ?? RECIPES['American'];
-}
 
 // ── Review pool ───────────────────────────────────────────────────────────────
 
-const REVIEW_POOL: Review[][] = [
-  [
-    { id:'r1', reviewer:'Priya S.',    stars:5, comment:'Absolutely incredible. Every bite was perfectly balanced. Will definitely request again!',              date:'Mar 22, 2026' },
-    { id:'r2', reviewer:'James T.',   stars:5, comment:'Generous portion, beautifully packaged. The flavor was restaurant-quality.',                             date:'Mar 15, 2026' },
-    { id:'r3', reviewer:'Hana N.',    stars:4, comment:'Really delicious — slightly spicier than expected but my whole family loved it.',                         date:'Mar 10, 2026' },
-  ],
-  [
-    { id:'r1', reviewer:'Marco B.',   stars:5, comment:'Best homemade food I\'ve had in years. The technique and seasoning were flawless.',                        date:'Mar 20, 2026' },
-    { id:'r2', reviewer:'Linh T.',    stars:5, comment:'Fresh, authentic, and so much better than any restaurant nearby. Thank you!',                             date:'Mar 14, 2026' },
-    { id:'r3', reviewer:'Sofia R.',   stars:4, comment:'Great portion size and the packaging kept everything warm. Definitely ordering again.',                    date:'Mar 8, 2026'  },
-  ],
-  [
-    { id:'r1', reviewer:'Aisha K.',   stars:5, comment:'The depth of flavor was unreal. You could taste the care that went into every step.',                     date:'Mar 19, 2026' },
-    { id:'r2', reviewer:'Carlos M.',  stars:4, comment:'Very tasty and authentic. Pickup was smooth and the cook was super friendly.',                             date:'Mar 12, 2026' },
-    { id:'r3', reviewer:'Yuki I.',    stars:5, comment:'Exceeded expectations — the texture and spicing were spot on. I\'m already planning my next order.',       date:'Mar 5, 2026'  },
-  ],
+const REVIEW_POOL: Review[] = [
+  { id: 'r1',  reviewer: 'Sandra K.', stars: 5, comment: 'Absolutely incredible — nothing like the overly-sweet versions at the store. Will order again!', date: 'Mar 2026' },
+  { id: 'r2',  reviewer: 'Tom H.',    stars: 5, comment: 'The packaging was thoughtful and the flavor was exactly as described. A real gem!', date: 'Feb 2026' },
+  { id: 'r3',  reviewer: 'Amy L.',    stars: 4, comment: 'Very tasty and authentic. Pickup was easy. Slightly smaller than expected but worth it.', date: 'Mar 2026' },
+  { id: 'r4',  reviewer: 'Jason Y.',  stars: 5, comment: 'Made this for our whole family and everyone asked for the contact. Outstanding quality.', date: 'Jan 2026' },
+  { id: 'r5',  reviewer: 'Iris W.',   stars: 4, comment: 'Love that it\'s not too sweet. Refreshing to find baked goods that respect the ingredients.', date: 'Feb 2026' },
+  { id: 'r6',  reviewer: 'Kevin M.',  stars: 5, comment: 'The real thing. Reminds me of what my mom used to make. Can\'t believe I found this here.', date: 'Mar 2026' },
+  { id: 'r7',  reviewer: 'Priya N.',  stars: 5, comment: 'As a non-Asian person I was nervous, but the seller explained everything so well. Delicious!', date: 'Feb 2026' },
+  { id: 'r8',  reviewer: 'Chris T.',  stars: 4, comment: 'Great product and super friendly exchange. The homemade quality really shows.', date: 'Jan 2026' },
+  { id: 'r9',  reviewer: 'Mei Y.',    stars: 5, comment: 'Exactly like my grandmother used to make. This platform is such a treasure.', date: 'Mar 2026' },
+  { id: 'r10', reviewer: 'David B.',  stars: 3, comment: 'Good, but not my style. The seller was very kind and responsive though.', date: 'Feb 2026' },
 ];
 
-export function getReviews(id: string): Review[] {
-  return REVIEW_POOL[parseInt(id) % REVIEW_POOL.length];
-}
+// ── Helper functions ──────────────────────────────────────────────────────────
 
 export function getListing(id: string): Listing | undefined {
   return LISTINGS.find((l) => l.id === id);
+}
+
+export function getRecipe(category: string): Recipe {
+  return RECIPES[category] ?? RECIPES['Baked Goods'];
+}
+
+export function getReviews(id: string): Review[] {
+  const n = parseInt(id, 10);
+  const count = (n % 2 === 0) ? 3 : 2;
+  const start = (n * 3) % REVIEW_POOL.length;
+  const reviews: Review[] = [];
+  for (let i = 0; i < count; i++) {
+    reviews.push(REVIEW_POOL[(start + i) % REVIEW_POOL.length]);
+  }
+  return reviews;
 }

@@ -10,7 +10,7 @@ export default function AuthCard({ children }: { children: React.ReactNode }) {
             🍽
           </div>
           <span className="font-bold text-slate-900 text-2xl tracking-tight">
-            Home<span className="text-orange-500">Plate</span>
+            Home<span className="text-orange-500">Bites</span>
           </span>
         </Link>
 
@@ -38,10 +38,11 @@ export function AuthDivider() {
   );
 }
 
-export function GoogleButton() {
+export function GoogleButton({ onClick }: { onClick?: () => void }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="w-full flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 py-2.5 text-sm font-semibold text-slate-700 transition-colors shadow-sm"
     >
       {/* Google "G" SVG */}

@@ -8,13 +8,13 @@ export default function HomePage() {
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Map — 55% */}
-        <div className="hidden md:block relative border-r border-gray-200" style={{ width: '55%' }}>
+        {/* Map — desktop only, 55% */}
+        <div className="hidden md:block relative border-r border-gray-200 shrink-0" style={{ width: '55%' }}>
           <MapboxMapClient />
         </div>
 
-        {/* Feed — 45% */}
-        <div className="w-full overflow-hidden" style={{ width: '45%' }}>
+        {/* Feed — full width on mobile, 45% on desktop */}
+        <div className="flex-1 overflow-hidden" style={{ minWidth: 0 }}>
           <ListingFeed />
         </div>
       </div>

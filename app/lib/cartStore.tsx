@@ -72,7 +72,7 @@ type CartCtx = {
 };
 
 const CartContext = createContext<CartCtx | null>(null);
-const LS_KEY = 'homeplate_cart_v1';
+const LS_KEY = 'homebites_cart_v1';
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, dispatch] = useReducer(reducer, []);

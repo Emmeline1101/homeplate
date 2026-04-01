@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { LISTINGS, CUISINE_GRADIENTS as GRADIENTS } from '../lib/mock';
 
 const CATEGORIES = [
-  'All','Chinese','Mexican','Italian','Japanese',
-  'Indian','American','Vietnamese','Thai','Korean','Ethiopian','Greek','Lebanese',
+  'All', 'Baked Goods', 'Asian Sweets', 'Jams & Preserves',
+  'Confections', 'Dried & Packaged', 'Fermented', 'Noodles & Pantry', 'Cookies & Biscuits',
 ];
 
 function formatPrice(cents: number) {
@@ -108,7 +108,7 @@ export default function ListingFeed() {
       {/* Header */}
       <div className="shrink-0 px-5 pt-5 pb-3">
         <h2 className="text-xl font-bold mb-4" style={{ color: '#1a3a2a' }}>
-          Dishes near you
+          Cottage food near you
         </h2>
 
         {/* Filter pills */}
@@ -148,7 +148,7 @@ export default function ListingFeed() {
       <div className="flex-1 overflow-y-auto px-5 pb-6" style={{ scrollbarWidth: 'thin' }}>
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 gap-2 text-gray-400">
-            <span className="text-3xl">🍽</span>
+            <span className="text-3xl">🥐</span>
             <p className="text-sm">No listings in this category yet</p>
           </div>
         ) : (
