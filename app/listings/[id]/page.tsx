@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import RequestExchangeButton from '../../components/RequestExchangeButton';
+import MessageSellerButton from '../../components/MessageSellerButton';
 import { getListing, getRecipe, getReviews, CUISINE_GRADIENTS } from '../../lib/mock';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -198,6 +199,7 @@ export default async function ListingDetailPage({
             pickupStart: listing.pickupStart,
             pickupEnd: listing.pickupEnd,
           }} />
+          <MessageSellerButton cookName={listing.cook} listingId={listing.id} />
         </div>
 
         {/* ── Recipe card ── */}
