@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import Navbar from '../../components/Navbar';
+import FollowButton from '../../components/FollowButton';
 import { createClient } from '../../lib/supabaseServer';
 import { CUISINE_GRADIENTS } from '../../lib/mock';
 
@@ -68,11 +69,33 @@ export default async function ProfilePage({
   // Fetch profile
   const { data: profile } = await supabase
     .from('users')
-    .select('id, name, email, avatar_url, bio, city, state, rating_avg, review_count, top_cook_badge, permit_status')
+    .select('id, name, email, avatar_url, bio, city, state, rating_avg, review_count, follower_count, following_count, top_cook_badge, permit_status')
     .eq('id', profileUserId)
     .single();
 
   if (!profile) notFound();
+
+  // Fetch follow status (only needed when viewing another user's profile)
+  let isFollowing = false;
+  let isFriend = false;
+  if (authUser && authUser.id !== profileUserId) {
+    const [{ data: followRow }, { data: followBackRow }] = await Promise.all([
+      supabase
+        .from('follows')
+        .select('follower_id')
+        .eq('follower_id', authUser.id)
+        .eq('following_id', profileUserId)
+        .maybeSingle(),
+      supabase
+        .from('follows')
+        .select('follower_id')
+        .eq('follower_id', profileUserId)
+        .eq('following_id', authUser.id)
+        .maybeSingle(),
+    ]);
+    isFollowing = !!followRow;
+    isFriend = isFollowing && !!followBackRow;
+  }
 
   // Fetch this cook's listings
   const { data: cookListings } = await supabase
@@ -150,10 +173,23 @@ export default async function ProfilePage({
               >
                 {profile.name?.[0] ?? '?'}
               </div>
-              {isOwnProfile && (
+              {isOwnProfile ? (
                 <button className="text-xs font-semibold px-3.5 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
                   Edit Profile
                 </button>
+              ) : authUser ? (
+                <FollowButton
+                  targetId={profileUserId}
+                  initialIsFollowing={isFollowing}
+                  isFriend={isFriend}
+                />
+              ) : (
+                <Link
+                  href="/auth/signin"
+                  className="text-xs font-semibold px-3.5 py-1.5 rounded-full bg-[#1a3a2a] text-white hover:bg-[#2d6a4f] transition-colors"
+                >
+                  + Follow
+                </Link>
               )}
             </div>
 
@@ -185,6 +221,20 @@ export default async function ProfilePage({
                 <Stars rating={profile.rating_avg ?? 0} />
                 <span className="text-sm font-bold text-gray-700">{(profile.rating_avg ?? 0).toFixed(1)}</span>
                 <span className="text-sm text-gray-400">· {profile.review_count ?? 0} reviews</span>
+              </div>
+
+              <div className="flex items-center gap-4 text-sm">
+                <Link href={`/profile/${profileUserId}/followers`} className="hover:underline underline-offset-2">
+                  <span className="font-bold text-gray-800">{profile.follower_count ?? 0}</span>
+                  <span className="text-gray-400 ml-1">followers</span>
+                </Link>
+                <Link href={`/profile/${profileUserId}/following`} className="hover:underline underline-offset-2">
+                  <span className="font-bold text-gray-800">{profile.following_count ?? 0}</span>
+                  <span className="text-gray-400 ml-1">following</span>
+                </Link>
+                {isFriend && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">👥 Friends</span>
+                )}
               </div>
 
               <PermitBadge status={permitStatus} />

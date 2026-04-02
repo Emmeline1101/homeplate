@@ -25,6 +25,8 @@ export interface User {
   lng: number | null
   rating_avg: number
   review_count: number
+  follower_count: number
+  following_count: number
   top_cook_badge: boolean
   stripe_account_id: string | null
   permit_status: 'none' | 'pending' | 'verified'
@@ -32,6 +34,12 @@ export interface User {
   requires_admin_approval: boolean
   created_at: string
   updated_at: string
+}
+
+export interface Follow {
+  follower_id: string
+  following_id: string
+  created_at: string
 }
 
 export interface Listing {
@@ -181,6 +189,7 @@ export interface Database {
       reports: { Row: Report; Insert: Omit<Report, 'id' | 'created_at'>; Update: never }
       messages: { Row: Message; Insert: MessageInsert; Update: Partial<Pick<Message, 'is_read'>> }
       saved_listings: { Row: SavedListing; Insert: Omit<SavedListing, 'created_at'>; Update: never }
+      follows: { Row: Follow; Insert: Omit<Follow, 'created_at'>; Update: never }
     }
   }
 }
