@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { createClient } from '../../lib/supabaseServer';
-import { LISTINGS, CUISINE_GRADIENTS } from '../../lib/mock';
+import { CUISINE_GRADIENTS } from '../../lib/mock';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -53,41 +53,49 @@ export default async function ProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const supabase = await createClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
 
-  // Fetch real user data for the current user's profile
-  let realUserName: string | null = null;
-  let realUserEmail: string | null = null;
+  // Resolve profile user ID
+  let profileUserId: string;
   if (id === 'me') {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect('/auth/signin');
-    realUserName = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Me';
-    realUserEmail = user.email ?? null;
+    if (!authUser) redirect('/auth/signin');
+    profileUserId = authUser.id;
+  } else {
+    profileUserId = id;
   }
 
-  const allListings = LISTINGS;
-  const cookListings = id === 'me'
-    ? allListings.slice(0, 4)
-    : allListings.filter(l => l.id === id || l.cook.toLowerCase().replace(/\s+/g, '-') === id);
+  // Fetch profile
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id, name, email, avatar_url, bio, city, state, rating_avg, review_count, top_cook_badge, permit_status')
+    .eq('id', profileUserId)
+    .single();
 
-  const sample      = cookListings[0] ?? allListings[0];
-  const cookName    = id === 'me' ? (realUserName ?? 'Me') : sample.cook;
-  const cookCity    = sample.cookCity;
-  const cookRating  = sample.cookRating;
-  const cookReviews = sample.cookReviews;
-  const isTopCook   = sample.topCook;
+  if (!profile) notFound();
 
-  const permitStatus: 'verified' | 'pending' | 'none' =
-    id === 'me' ? 'pending' : (parseInt(sample.id) % 3 === 0 ? 'pending' : 'verified');
+  // Fetch this cook's listings
+  const { data: cookListings } = await supabase
+    .from('listings')
+    .select('id, title, cuisine_tag, emoji, quantity_left, quantity_total, price_cents, status')
+    .eq('user_id', profileUserId)
+    .in('status', ['active', 'draft'])
+    .order('created_at', { ascending: false });
 
-  // Pick a gradient from their most common cuisine
-  const [coverFrom, coverTo] = CUISINE_GRADIENTS[sample.cuisine] ?? ['#1a3a2a', '#2d6a4f'];
+  // Fetch reviews received
+  const { data: reviews } = await supabase
+    .from('reviews')
+    .select('id, stars_avg, comment, created_at, reviewer:users!reviewer_id(name)')
+    .eq('reviewee_id', profileUserId)
+    .order('created_at', { ascending: false })
+    .limit(5);
 
-  const reviews = [
-    { reviewer: 'Sandra K.', stars: 5, comment: 'Amazing quality and so beautifully packaged. Will definitely order again!', date: 'Mar 2026' },
-    { reviewer: 'Tom H.',    stars: 5, comment: "Less sweet than anything I've found at a store — exactly what I was looking for.", date: 'Feb 2026' },
-    { reviewer: 'Amy L.',    stars: 4, comment: 'Great product, super easy pickup experience. The mochi was perfectly chewy.', date: 'Feb 2026' },
-  ];
+  // Pick gradient from most common cuisine
+  const dominantCuisine = cookListings?.[0]?.cuisine_tag ?? '';
+  const [coverFrom, coverTo] = CUISINE_GRADIENTS[dominantCuisine] ?? ['#1a3a2a', '#2d6a4f'];
+
+  const isOwnProfile = authUser?.id === profileUserId;
+  const permitStatus = (profile.permit_status ?? 'none') as 'verified' | 'pending' | 'none';
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#f7f4ef' }}>
@@ -107,7 +115,6 @@ export default async function ProfilePage({
           className="absolute inset-0"
           style={{ background: 'radial-gradient(ellipse at 50% 0%, transparent 30%, rgba(0,0,0,0.2) 100%)' }}
         />
-        {/* Fade into page bg */}
         <div
           className="absolute bottom-0 left-0 right-0 h-16"
           style={{ background: 'linear-gradient(to top, #f7f4ef, transparent)' }}
@@ -120,14 +127,13 @@ export default async function ProfilePage({
         <div className="bg-white rounded-3xl border border-black/[0.05] shadow-sm overflow-hidden">
           <div className="px-5 pb-6 pt-3">
             <div className="flex items-end justify-between mb-4">
-              {/* Avatar */}
               <div
                 className="w-20 h-20 rounded-2xl border-4 border-white flex items-center justify-center text-3xl font-bold text-white shadow-md"
                 style={{ background: `linear-gradient(135deg, ${coverFrom}, ${coverTo})` }}
               >
-                {cookName[0]}
+                {profile.name?.[0] ?? '?'}
               </div>
-              {id === 'me' && (
+              {isOwnProfile && (
                 <button className="text-xs font-semibold px-3.5 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
                   Edit Profile
                 </button>
@@ -136,32 +142,37 @@ export default async function ProfilePage({
 
             <div className="space-y-2.5">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-extrabold tracking-tight" style={{ color: '#1a3a2a' }}>{cookName}</h1>
-                {isTopCook && (
+                <h1 className="text-xl font-extrabold tracking-tight" style={{ color: '#1a3a2a' }}>
+                  {profile.name ?? 'Anonymous Cook'}
+                </h1>
+                {profile.top_cook_badge && (
                   <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">⭐ Top Cook</span>
                 )}
               </div>
 
-              {id === 'me' && realUserEmail && (
-                <p className="text-sm text-gray-400">{realUserEmail}</p>
+              {isOwnProfile && profile.email && (
+                <p className="text-sm text-gray-400">{profile.email}</p>
               )}
-              <p className="text-sm text-gray-500 flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                {cookCity}
-              </p>
+
+              {(profile.city || profile.state) && (
+                <p className="text-sm text-gray-500 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {[profile.city, profile.state].filter(Boolean).join(', ')}
+                </p>
+              )}
 
               <div className="flex items-center gap-2">
-                <Stars rating={cookRating} />
-                <span className="text-sm font-bold text-gray-700">{cookRating.toFixed(1)}</span>
-                <span className="text-sm text-gray-400">· {cookReviews} reviews</span>
+                <Stars rating={profile.rating_avg ?? 0} />
+                <span className="text-sm font-bold text-gray-700">{(profile.rating_avg ?? 0).toFixed(1)}</span>
+                <span className="text-sm text-gray-400">· {profile.review_count ?? 0} reviews</span>
               </div>
 
               <PermitBadge status={permitStatus} />
 
-              {id === 'me' && permitStatus !== 'verified' && (
+              {isOwnProfile && permitStatus !== 'verified' && (
                 <div className="mt-1 rounded-2xl p-3.5 text-xs border" style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a' }}>
                   <p className="font-bold text-amber-800 mb-0.5">Upload your permit to start selling</p>
                   <p className="text-amber-700">You need a valid CA Cottage Food Permit to post listings.</p>
@@ -175,9 +186,9 @@ export default async function ProfilePage({
         {/* ── Stats row ── */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Listings',   value: cookListings.length, suffix: '' },
-            { label: 'Exchanges',  value: cookReviews,         suffix: '' },
-            { label: 'Rating',     value: cookRating.toFixed(1), suffix: '★' },
+            { label: 'Listings',  value: cookListings?.length ?? 0,             suffix: '' },
+            { label: 'Reviews',   value: profile.review_count ?? 0,             suffix: '' },
+            { label: 'Rating',    value: (profile.rating_avg ?? 0).toFixed(1),  suffix: '★' },
           ].map(({ label, value, suffix }) => (
             <div key={label} className="bg-white rounded-3xl border border-black/[0.05] shadow-sm p-4 text-center">
               <p className="text-2xl font-extrabold tabular-nums" style={{ color: '#1a3a2a' }}>
@@ -191,43 +202,42 @@ export default async function ProfilePage({
         {/* ── Listings ── */}
         <div className="bg-white rounded-3xl border border-black/[0.05] shadow-sm p-5 space-y-4">
           <h2 className="font-bold text-base" style={{ color: '#1a3a2a' }}>
-            {id === 'me' ? 'My Listings' : `${cookName}'s Listings`}
+            {isOwnProfile ? 'My Listings' : `${profile.name ?? 'Cook'}'s Listings`}
           </h2>
-          {cookListings.length === 0 ? (
+          {!cookListings || cookListings.length === 0 ? (
             <p className="text-sm text-gray-400">No listings yet.</p>
           ) : (
             <div className="space-y-2">
               {cookListings.map(l => {
-                const [from, to] = CUISINE_GRADIENTS[l.cuisine] ?? ['#94a3b8', '#475569'];
+                const cuisine = l.cuisine_tag ?? '';
+                const [from, to] = CUISINE_GRADIENTS[cuisine] ?? ['#94a3b8', '#475569'];
                 return (
                   <Link
                     key={l.id}
                     href={`/listings/${l.id}`}
                     className="flex items-center gap-3.5 p-3 rounded-2xl hover:bg-gray-50 transition-colors group"
                   >
-                    {/* Emoji tile */}
                     <div
                       className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 transition-transform duration-300 group-hover:scale-105"
                       style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
                     >
-                      {l.emoji}
+                      {l.emoji ?? '🍱'}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold truncate" style={{ color: '#1a3a2a' }}>{l.title}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{l.cuisine} · {l.portions} portions left</p>
-                      {/* Mini progress bar */}
+                      <p className="text-xs text-gray-400 mt-0.5">{cuisine} · {l.quantity_left} portions left</p>
                       <div className="mt-1.5 h-[3px] rounded-full bg-gray-100 overflow-hidden w-24">
                         <div
                           className="h-full rounded-full"
                           style={{
-                            width: `${Math.round((l.portions / l.totalPortions) * 100)}%`,
-                            backgroundColor: l.portions <= 2 ? '#ef4444' : '#1a3a2a',
+                            width: `${Math.round((l.quantity_left / l.quantity_total) * 100)}%`,
+                            backgroundColor: l.quantity_left <= 2 ? '#ef4444' : '#1a3a2a',
                           }}
                         />
                       </div>
                     </div>
-                    <span className="text-sm font-extrabold shrink-0 tabular-nums" style={{ color: l.price === 0 ? '#16a34a' : '#1a3a2a' }}>
-                      {formatPrice(l.price)}
+                    <span className="text-sm font-extrabold shrink-0 tabular-nums" style={{ color: l.price_cents === 0 ? '#16a34a' : '#1a3a2a' }}>
+                      {formatPrice(l.price_cents)}
                     </span>
                   </Link>
                 );
@@ -239,29 +249,41 @@ export default async function ProfilePage({
         {/* ── Reviews ── */}
         <div className="bg-white rounded-3xl border border-black/[0.05] shadow-sm p-5 space-y-4">
           <h2 className="font-bold text-base" style={{ color: '#1a3a2a' }}>Reviews</h2>
-          <div className="space-y-4">
-            {reviews.map((r, i) => (
-              <div key={i}>
-                {i > 0 && <div className="h-px bg-gray-100 mb-4" />}
-                <div className="flex items-start gap-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                    style={{ background: `linear-gradient(135deg, ${coverFrom}cc, ${coverTo}cc)` }}
-                  >
-                    {r.reviewer[0]}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-semibold text-gray-800">{r.reviewer}</span>
-                      <span className="text-xs text-gray-400">{r.date}</span>
+          {!reviews || reviews.length === 0 ? (
+            <p className="text-sm text-gray-400">No reviews yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {reviews.map((r, i) => {
+                const reviewer = r.reviewer as { name: string | null } | null;
+                const name = reviewer?.name ?? 'Anonymous';
+                return (
+                  <div key={r.id}>
+                    {i > 0 && <div className="h-px bg-gray-100 mb-4" />}
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${coverFrom}cc, ${coverTo}cc)` }}
+                      >
+                        {name[0]}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-semibold text-gray-800">{name}</span>
+                          <span className="text-xs text-gray-400">
+                            {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <Stars rating={r.stars_avg ?? 0} />
+                        {r.comment && (
+                          <p className="text-sm text-gray-600 leading-relaxed mt-1.5">{r.comment}</p>
+                        )}
+                      </div>
                     </div>
-                    <Stars rating={r.stars} />
-                    <p className="text-sm text-gray-600 leading-relaxed mt-1.5">{r.comment}</p>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="h-4" />

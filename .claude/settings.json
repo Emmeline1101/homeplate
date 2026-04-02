@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -l \"const.*\\\\[\\\\s*{\" /Volumes/storageII/GitHub/homeplate/app/components/*.tsx /Volumes/storageII/GitHub/homeplate/app/lib/*.tsx)"
+    ]
+  }
+}

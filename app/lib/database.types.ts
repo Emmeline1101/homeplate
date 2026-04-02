@@ -27,6 +27,7 @@ export interface User {
   review_count: number
   top_cook_badge: boolean
   stripe_account_id: string | null
+  permit_status: 'none' | 'pending' | 'verified'
   is_suspended: boolean
   requires_admin_approval: boolean
   created_at: string
@@ -39,6 +40,7 @@ export interface Listing {
   title: string
   description: string | null
   cuisine_tag: string | null
+  emoji: string | null
   allergens: string[]
   photo_urls: string[]
   video_url: string | null

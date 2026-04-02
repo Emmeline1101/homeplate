@@ -1,9 +1,27 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
-import { LISTINGS, CUISINE_GRADIENTS } from '../lib/mock';
+import { CUISINE_GRADIENTS } from '../lib/mock';
+import { createClient } from '../lib/supabase';
+
+type SearchListing = {
+  id: string
+  title: string
+  description: string | null
+  cuisine_tag: string | null
+  emoji: string | null
+  quantity_left: number
+  quantity_total: number
+  price_cents: number
+  users: {
+    name: string | null
+    rating_avg: number
+    top_cook_badge: boolean
+    city: string | null
+  } | null
+}
 
 const CATEGORIES = [
   'All', 'Baked Goods', 'Asian Sweets', 'Jams & Preserves',
@@ -17,27 +35,42 @@ function formatPrice(cents: number) {
 const NOISE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E")`;
 
 export default function SearchPage() {
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('All');
+  const [query, setQuery]             = useState('');
+  const [category, setCategory]       = useState('All');
   const [priceFilter, setPriceFilter] = useState<'all' | 'free' | 'paid'>('all');
+  const [allListings, setAllListings] = useState<SearchListing[]>([]);
+  const [loading, setLoading]         = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from('listings')
+      .select('id, title, description, cuisine_tag, emoji, quantity_left, quantity_total, price_cents, users:user_id(name, rating_avg, top_cook_badge, city)')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setAllListings((data as unknown as SearchListing[]) ?? []);
+        setLoading(false);
+      });
+  }, []);
 
   const results = useMemo(() => {
     const q = query.toLowerCase().trim();
-    return LISTINGS.filter(l => {
+    return allListings.filter(l => {
       const matchesQuery = !q ||
         l.title.toLowerCase().includes(q) ||
-        l.description.toLowerCase().includes(q) ||
-        l.cook.toLowerCase().includes(q) ||
-        l.cuisine.toLowerCase().includes(q) ||
-        l.cookCity.toLowerCase().includes(q);
-      const matchesCategory = category === 'All' || l.cuisine === category;
+        (l.description ?? '').toLowerCase().includes(q) ||
+        (l.users?.name ?? '').toLowerCase().includes(q) ||
+        (l.cuisine_tag ?? '').toLowerCase().includes(q) ||
+        (l.users?.city ?? '').toLowerCase().includes(q);
+      const matchesCategory = category === 'All' || l.cuisine_tag === category;
       const matchesPrice =
-        priceFilter === 'all' ? true :
-        priceFilter === 'free' ? l.price === 0 :
-        l.price > 0;
+        priceFilter === 'all'  ? true :
+        priceFilter === 'free' ? l.price_cents === 0 :
+        l.price_cents > 0;
       return matchesQuery && matchesCategory && matchesPrice;
     });
-  }, [query, category, priceFilter]);
+  }, [query, category, priceFilter, allListings]);
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#f7f4ef' }}>
@@ -47,7 +80,7 @@ export default function SearchPage() {
 
         {/* Search bar */}
         <div className="relative">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 w-[18px] h-[18px] text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M16.65 10.825a5.825 5.825 0 1 1-11.65 0 5.825 5.825 0 0 1 11.65 0z" />
           </svg>
           <input
@@ -109,7 +142,13 @@ export default function SearchPage() {
         </div>
 
         {/* Results */}
-        {results.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-2 gap-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="rounded-3xl bg-gray-100 animate-pulse" style={{ height: 220 }} />
+            ))}
+          </div>
+        ) : results.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
             <span className="text-5xl">🔍</span>
             <p className="font-bold text-gray-700">No results found</p>
@@ -118,10 +157,12 @@ export default function SearchPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {results.map(l => {
-              const [from, to] = CUISINE_GRADIENTS[l.cuisine] ?? ['#94a3b8', '#475569'];
-              const isFree = l.price === 0;
-              const isLow  = l.portions <= 2;
-              const pct    = Math.round((l.portions / l.totalPortions) * 100);
+              const cuisine = l.cuisine_tag ?? '';
+              const [from, to] = CUISINE_GRADIENTS[cuisine] ?? ['#94a3b8', '#475569'];
+              const isFree = l.price_cents === 0;
+              const isLow  = l.quantity_left <= 2;
+              const pct    = Math.round((l.quantity_left / l.quantity_total) * 100);
+              const cookName = l.users?.name ?? 'Unknown Cook';
 
               return (
                 <Link
@@ -143,26 +184,20 @@ export default function SearchPage() {
 
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="text-[56px] leading-none drop-shadow-lg select-none transition-transform duration-500 group-hover:scale-110">
-                        {l.emoji}
+                        {l.emoji ?? '🍱'}
                       </span>
                     </div>
 
                     {/* Badges */}
                     <div className="absolute top-2.5 left-2.5 flex gap-1">
                       {isFree && (
-                        <span className="text-[10px] font-extrabold tracking-wide px-2 py-0.5 rounded-full bg-white/85 backdrop-blur-sm text-emerald-700 shadow-sm">
-                          FREE
-                        </span>
+                        <span className="text-[10px] font-extrabold tracking-wide px-2 py-0.5 rounded-full bg-white/85 backdrop-blur-sm text-emerald-700 shadow-sm">FREE</span>
                       )}
-                      {l.topCook && (
-                        <span className="text-[10px] font-extrabold tracking-wide px-2 py-0.5 rounded-full bg-amber-400 text-white shadow-sm">
-                          ⭐ TOP
-                        </span>
+                      {l.users?.top_cook_badge && (
+                        <span className="text-[10px] font-extrabold tracking-wide px-2 py-0.5 rounded-full bg-amber-400 text-white shadow-sm">⭐ TOP</span>
                       )}
                       {isLow && (
-                        <span className="text-[10px] font-extrabold tracking-wide px-2 py-0.5 rounded-full bg-red-500 text-white shadow-sm">
-                          {l.portions} LEFT
-                        </span>
+                        <span className="text-[10px] font-extrabold tracking-wide px-2 py-0.5 rounded-full bg-red-500 text-white shadow-sm">{l.quantity_left} LEFT</span>
                       )}
                     </div>
 
@@ -176,10 +211,10 @@ export default function SearchPage() {
                           className="w-5 h-5 rounded-full border border-white/60 flex items-center justify-center text-[9px] font-bold text-white shrink-0"
                           style={{ backgroundColor: '#1a3a2a' }}
                         >
-                          {l.cook[0]}
+                          {cookName[0]}
                         </div>
-                        <span className="text-white text-[11px] font-medium flex-1 truncate leading-none">{l.cook}</span>
-                        <span className="text-white text-[11px] font-bold shrink-0">{l.cookRating.toFixed(1)} ⭐</span>
+                        <span className="text-white text-[11px] font-medium flex-1 truncate leading-none">{cookName}</span>
+                        <span className="text-white text-[11px] font-bold shrink-0">{(l.users?.rating_avg ?? 0).toFixed(1)} ⭐</span>
                       </div>
                     </div>
                   </div>
@@ -191,11 +226,10 @@ export default function SearchPage() {
                         {l.title}
                       </h3>
                       <span className="shrink-0 text-sm font-extrabold tabular-nums" style={{ color: isFree ? '#16a34a' : '#1a3a2a' }}>
-                        {formatPrice(l.price)}
+                        {formatPrice(l.price_cents)}
                       </span>
                     </div>
 
-                    {/* Progress bar */}
                     <div>
                       <div className="h-[3px] rounded-full bg-gray-100 overflow-hidden">
                         <div
@@ -204,7 +238,7 @@ export default function SearchPage() {
                         />
                       </div>
                       <p className="text-[10px] mt-1" style={{ color: isLow ? '#ef4444' : '#9ca3af' }}>
-                        {isLow ? `⚡ ${l.portions} left` : `${l.portions} of ${l.totalPortions}`}
+                        {isLow ? `⚡ ${l.quantity_left} left` : `${l.quantity_left} of ${l.quantity_total}`}
                       </p>
                     </div>
                   </div>

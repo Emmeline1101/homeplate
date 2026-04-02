@@ -4,7 +4,8 @@ import BackButton from '../../components/BackButton';
 import RequestExchangeButton from '../../components/RequestExchangeButton';
 import MessageSellerButton from '../../components/MessageSellerButton';
 import CartIcon from '../../components/CartIcon';
-import { getListing, getRecipe, getReviews, CUISINE_GRADIENTS } from '../../lib/mock';
+import { CUISINE_GRADIENTS } from '../../lib/mock';
+import { createClient } from '../../lib/supabaseServer';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -52,32 +53,63 @@ export default async function ListingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const listing = getListing(id);
+  const supabase = await createClient();
+
+  // Fetch listing + cook info
+  const { data: listing } = await supabase
+    .from('listings')
+    .select(`
+      *,
+      cook:user_id(id, name, avatar_url, rating_avg, review_count, top_cook_badge, city)
+    `)
+    .eq('id', id)
+    .single();
+
   if (!listing) notFound();
 
-  const recipe  = getRecipe(listing.cuisine);
-  const reviews = getReviews(id);
+  const cook = listing.cook as {
+    id: string; name: string | null; avatar_url: string | null;
+    rating_avg: number; review_count: number; top_cook_badge: boolean; city: string | null;
+  } | null;
 
-  const [gradFrom, gradTo] = CUISINE_GRADIENTS[listing.cuisine] ?? ['#94a3b8', '#475569'];
-  const portionPct = (listing.portions / listing.totalPortions) * 100;
-  const isLow      = listing.portions <= 2;
-  const isFree     = listing.price === 0;
+  // Fetch recipe for this listing
+  const { data: recipe } = await supabase
+    .from('recipes')
+    .select('*')
+    .eq('listing_id', id)
+    .maybeSingle();
+
+  // Fetch recent reviews for the cook
+  const { data: reviews } = cook?.id
+    ? await supabase
+        .from('reviews')
+        .select('id, stars_avg, comment, created_at, reviewer:users!reviewer_id(name)')
+        .eq('reviewee_id', cook.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+    : { data: [] };
+
+  const cuisine     = listing.cuisine_tag ?? '';
+  const [gradFrom, gradTo] = CUISINE_GRADIENTS[cuisine] ?? ['#94a3b8', '#475569'];
+  const portionPct  = (listing.quantity_left / listing.quantity_total) * 100;
+  const isLow       = listing.quantity_left <= 2;
+  const isFree      = listing.price_cents === 0;
+  const cookName    = cook?.name ?? 'Unknown Cook';
+  const cookRating  = cook?.rating_avg ?? 0;
+  const cookReviews = cook?.review_count ?? 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
 
-      {/* ── Full-bleed hero (no navbar — floated controls overlay it) ── */}
+      {/* ── Full-bleed hero ── */}
       <div
         className="relative w-full overflow-hidden"
         style={{ height: '62vh', minHeight: 340, maxHeight: 520 }}
       >
-        {/* Background gradient */}
         <div
           className="absolute inset-0"
           style={{ background: `linear-gradient(160deg, ${gradFrom} 0%, ${gradTo} 60%, #0d2218 100%)` }}
         />
-
-        {/* Grain texture */}
         <div
           className="absolute inset-0 opacity-[0.22]"
           style={{
@@ -85,67 +117,55 @@ export default async function ListingDetailPage({
             backgroundSize: '220px',
           }}
         />
-
-        {/* Edge vignette */}
         <div
           className="absolute inset-0"
           style={{ background: 'radial-gradient(ellipse 120% 100% at 50% 100%, rgba(0,0,0,0.55) 0%, transparent 60%)' }}
         />
-        {/* Top darkening for safe control zone */}
         <div
           className="absolute top-0 left-0 right-0 h-28"
           style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 100%)' }}
         />
-
-        {/* Subtle light leak — top-right */}
         <div
           className="absolute -top-20 -right-20 w-80 h-80 rounded-full opacity-[0.12]"
           style={{ background: 'radial-gradient(circle, rgba(255,255,255,1) 0%, transparent 70%)' }}
         />
 
-        {/* ── Food display ── */}
+        {/* Emoji */}
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-0" style={{ paddingTop: 48 }}>
-          {/* Plate glow — soft white ellipse behind emoji */}
           <div
             className="absolute"
             style={{
-              width: 200,
-              height: 200,
-              borderRadius: '50%',
+              width: 200, height: 200, borderRadius: '50%',
               background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)',
               filter: 'blur(20px)',
             }}
           />
-          {/* Emoji */}
           <span
             className="relative select-none"
             style={{
-              fontSize: 120,
-              lineHeight: 1,
+              fontSize: 120, lineHeight: 1,
               filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.45)) drop-shadow(0 2px 6px rgba(0,0,0,0.3))',
             }}
           >
-            {listing.emoji}
+            {listing.emoji ?? '🍱'}
           </span>
         </div>
 
-        {/* Bottom fade → white content area */}
         <div
           className="absolute bottom-0 left-0 right-0"
           style={{ height: 80, background: 'linear-gradient(to top, #ffffff 0%, transparent 100%)' }}
         />
 
-        {/* ── Floating top controls ── */}
+        {/* Floating controls */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 md:pt-4">
           <BackButton fallback="/" />
           <div className="flex items-center gap-2">
-            {/* Badges */}
             {isLow && (
               <span className="text-[11px] font-extrabold tracking-wide px-2.5 py-1 rounded-full bg-red-500 text-white shadow-md">
-                {listing.portions} LEFT
+                {listing.quantity_left} LEFT
               </span>
             )}
-            {listing.topCook && (
+            {cook?.top_cook_badge && (
               <span className="text-[11px] font-extrabold tracking-wide px-2.5 py-1 rounded-full bg-amber-400 text-white shadow-md">
                 ⭐ TOP
               </span>
@@ -156,28 +176,26 @@ export default async function ListingDetailPage({
                 FREE
               </span>
             )}
-            {/* Cart */}
             <CartIcon variant="light" />
           </div>
         </div>
 
-        {/* ── Cuisine tag — bottom-left of hero ── */}
+        {/* Cuisine tag */}
         <div className="absolute bottom-6 left-4">
           <span
             className="text-xs font-bold px-3 py-1.5 rounded-full text-white shadow-md"
             style={{ backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)' }}
           >
-            {listing.cuisine}
+            {cuisine}
           </span>
         </div>
       </div>
 
-      {/* ── Scrollable content — starts just below hero ── */}
+      {/* ── Scrollable content ── */}
       <main className="flex-1 w-full max-w-2xl mx-auto px-4 pb-36 md:pb-12 space-y-3 -mt-1">
 
-        {/* ── Title + cook card ── */}
+        {/* Title + cook card */}
         <div className="bg-white space-y-4 pt-2 pb-5 border-b border-gray-100">
-          {/* Title row */}
           <div className="flex items-start justify-between gap-3">
             <h1 className="text-[22px] font-extrabold leading-tight tracking-tight" style={{ color: '#1a3a2a' }}>
               {listing.title}
@@ -186,7 +204,7 @@ export default async function ListingDetailPage({
               className="shrink-0 text-lg font-extrabold tabular-nums mt-0.5"
               style={{ color: isFree ? '#16a34a' : '#1a3a2a' }}
             >
-              {formatPrice(listing.price)}
+              {formatPrice(listing.price_cents)}
             </span>
           </div>
 
@@ -196,60 +214,65 @@ export default async function ListingDetailPage({
               className="w-10 h-10 rounded-2xl flex items-center justify-center text-white text-sm font-bold shrink-0"
               style={{ background: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
             >
-              {listing.cook[0]}
+              {cookName[0]}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-bold text-sm text-gray-900">{listing.cook}</span>
-                {listing.topCook && (
+                <span className="font-bold text-sm text-gray-900">{cookName}</span>
+                {cook?.top_cook_badge && (
                   <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">
                     ⭐ Top Cook
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <Stars rating={listing.cookRating} size="sm" />
-                <span className="text-xs font-bold text-gray-700">{listing.cookRating.toFixed(1)}</span>
-                <span className="text-xs text-gray-400">· {listing.cookCity}</span>
+                <Stars rating={cookRating} size="sm" />
+                <span className="text-xs font-bold text-gray-700">{cookRating.toFixed(1)}</span>
+                <span className="text-xs text-gray-400">· {cook?.city ?? ''}</span>
               </div>
             </div>
-            <Link
-              href={`/profile/${listing.cook.toLowerCase().replace(/\s+/g, '-')}`}
-              className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              Profile
-            </Link>
+            {cook?.id && (
+              <Link
+                href={`/profile/${cook.id}`}
+                className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Profile
+              </Link>
+            )}
           </div>
 
           {/* Description */}
-          <p className="text-sm text-gray-500 leading-relaxed">{listing.description}</p>
+          {listing.description && (
+            <p className="text-sm text-gray-500 leading-relaxed">{listing.description}</p>
+          )}
 
           {/* Allergens */}
-          <div className="flex flex-wrap gap-1.5 items-center">
-            <span className="text-[11px] text-gray-400 font-medium">Allergens:</span>
-            {listing.allergens.map((a) => {
-              const s = ALLERGEN_STYLE[a] ?? ALLERGEN_STYLE['none'];
-              return (
-                <span key={a} className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize"
-                  style={{ backgroundColor: s.bg, color: s.text, borderColor: s.border }}>
-                  {a === 'none' ? 'Allergen-free' : a.replace('_', ' ')}
-                </span>
-              );
-            })}
-          </div>
+          {listing.allergens && listing.allergens.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <span className="text-[11px] text-gray-400 font-medium">Allergens:</span>
+              {listing.allergens.map((a) => {
+                const s = ALLERGEN_STYLE[a] ?? ALLERGEN_STYLE['none'];
+                return (
+                  <span key={a} className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize"
+                    style={{ backgroundColor: s.bg, color: s.text, borderColor: s.border }}>
+                    {a === 'none' ? 'Allergen-free' : a.replace('_', ' ')}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ── Availability ── */}
         <div className="py-4 border-b border-gray-100 space-y-4">
           <h2 className="font-bold text-sm tracking-wide uppercase text-gray-400">Availability</h2>
 
-          {/* Portion bar */}
           <div>
             <div className="flex justify-between text-sm mb-2">
               <span className={`font-semibold ${isLow ? 'text-red-500' : 'text-gray-700'}`}>
                 {isLow ? '⚡ Almost gone' : 'Portions available'}
               </span>
-              <span className="text-gray-400 tabular-nums">{listing.portions} / {listing.totalPortions}</span>
+              <span className="text-gray-400 tabular-nums">{listing.quantity_left} / {listing.quantity_total}</span>
             </div>
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
@@ -259,132 +282,154 @@ export default async function ListingDetailPage({
             </div>
           </div>
 
-          {/* Price + pickup */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl p-4" style={{ backgroundColor: '#f7f4ef' }}>
               <p className="text-[11px] font-medium text-gray-400 mb-1">Price per portion</p>
               <p className="text-xl font-extrabold tabular-nums" style={{ color: isFree ? '#16a34a' : '#1a3a2a' }}>
-                {formatPrice(listing.price)}
+                {formatPrice(listing.price_cents)}
               </p>
             </div>
             <div className="rounded-2xl p-4" style={{ backgroundColor: '#f7f4ef' }}>
               <p className="text-[11px] font-medium text-gray-400 mb-1">Pickup window</p>
               <p className="text-xs font-semibold text-gray-800 leading-snug">
-                {formatPickup(listing.pickupStart, listing.pickupEnd)}
+                {listing.pickup_start && listing.pickup_end
+                  ? formatPickup(listing.pickup_start, listing.pickup_end)
+                  : 'TBD'}
               </p>
             </div>
           </div>
 
-          {/* CTA — desktop only; mobile uses sticky bar */}
           <div className="hidden md:block space-y-2">
             <RequestExchangeButton item={{
               listingId: listing.id,
               title: listing.title,
-              cuisine: listing.cuisine,
-              cook: listing.cook,
-              emoji: listing.emoji,
-              price: listing.price,
-              maxPortions: listing.portions,
-              pickupStart: listing.pickupStart,
-              pickupEnd: listing.pickupEnd,
+              cuisine: cuisine,
+              cook: cookName,
+              emoji: listing.emoji ?? '🍱',
+              price: listing.price_cents,
+              maxPortions: listing.quantity_left,
+              pickupStart: listing.pickup_start ?? '',
+              pickupEnd: listing.pickup_end ?? '',
             }} />
-            <MessageSellerButton cookName={listing.cook} listingId={listing.id} />
+            <MessageSellerButton cookName={cookName} listingId={listing.id} />
           </div>
         </div>
 
         {/* ── Recipe ── */}
-        <div className="py-4 border-b border-gray-100 space-y-5">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-sm tracking-wide uppercase text-gray-400">Recipe</h2>
-            <div className="flex gap-4 text-xs text-gray-400">
-              <span className="flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <circle cx="12" cy="12" r="10" /><path strokeLinecap="round" d="M12 6v6l4 2" />
-                </svg>
-                {recipe.cookTimeMins} min
-              </span>
-              <span className="flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m9-4a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                {recipe.servings} servings
-              </span>
+        {recipe && (
+          <div className="py-4 border-b border-gray-100 space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-sm tracking-wide uppercase text-gray-400">Recipe</h2>
+              <div className="flex gap-4 text-xs text-gray-400">
+                {recipe.cook_time_mins && (
+                  <span className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <circle cx="12" cy="12" r="10" /><path strokeLinecap="round" d="M12 6v6l4 2" />
+                    </svg>
+                    {recipe.cook_time_mins} min
+                  </span>
+                )}
+                {recipe.servings && (
+                  <span className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m9-4a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    {recipe.servings} servings
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Ingredients */}
-          <div>
-            <p className="text-xs font-bold tracking-widest uppercase text-gray-300 mb-3">Ingredients</p>
-            <ul className="space-y-2.5">
-              {recipe.ingredients.map((ing, i) => (
-                <li key={i} className="flex items-center gap-3 text-sm text-gray-700">
-                  <span
-                    className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
-                    style={{ backgroundColor: gradFrom }}
-                  >
-                    {i + 1}
-                  </span>
-                  {ing}
-                </li>
-              ))}
-            </ul>
-          </div>
+            {/* Ingredients */}
+            {Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0 && (
+              <div>
+                <p className="text-xs font-bold tracking-widest uppercase text-gray-300 mb-3">Ingredients</p>
+                <ul className="space-y-2.5">
+                  {(recipe.ingredients as Array<{ name: string; amount: string; unit: string }>).map((ing, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm text-gray-700">
+                      <span
+                        className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                        style={{ backgroundColor: gradFrom }}
+                      >
+                        {i + 1}
+                      </span>
+                      {ing.amount} {ing.unit} {ing.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-          <div className="h-px bg-gray-100" />
+            <div className="h-px bg-gray-100" />
 
-          {/* Steps */}
-          <div>
-            <p className="text-xs font-bold tracking-widest uppercase text-gray-300 mb-3">Instructions</p>
-            <ol className="space-y-4">
-              {recipe.steps.map((step, i) => (
-                <li key={i} className="flex gap-3">
-                  <span
-                    className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white mt-0.5"
-                    style={{ backgroundColor: '#1a3a2a' }}
-                  >
-                    {i + 1}
-                  </span>
-                  <p className="text-sm text-gray-600 leading-relaxed">{step}</p>
-                </li>
-              ))}
-            </ol>
+            {/* Steps */}
+            {Array.isArray(recipe.steps) && recipe.steps.length > 0 && (
+              <div>
+                <p className="text-xs font-bold tracking-widest uppercase text-gray-300 mb-3">Instructions</p>
+                <ol className="space-y-4">
+                  {(recipe.steps as Array<{ step_number: number; instruction: string }>).map((step, i) => (
+                    <li key={i} className="flex gap-3">
+                      <span
+                        className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white mt-0.5"
+                        style={{ backgroundColor: '#1a3a2a' }}
+                      >
+                        {step.step_number}
+                      </span>
+                      <p className="text-sm text-gray-600 leading-relaxed">{step.instruction}</p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* ── Reviews ── */}
         <div className="py-4 space-y-5">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-sm tracking-wide uppercase text-gray-400">Reviews</h2>
             <div className="flex items-center gap-1.5">
-              <Stars rating={listing.cookRating} size="sm" />
-              <span className="text-sm font-bold text-gray-700">{listing.cookRating.toFixed(1)}</span>
-              <span className="text-xs text-gray-400">· {listing.cookReviews}</span>
+              <Stars rating={cookRating} size="sm" />
+              <span className="text-sm font-bold text-gray-700">{cookRating.toFixed(1)}</span>
+              <span className="text-xs text-gray-400">· {cookReviews}</span>
             </div>
           </div>
 
-          <div className="space-y-5">
-            {reviews.map((review, i) => (
-              <div key={review.id}>
-                {i > 0 && <div className="h-px bg-gray-100 mb-5" />}
-                <div className="flex items-start gap-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                    style={{ background: `linear-gradient(135deg, ${gradFrom}cc, ${gradTo}cc)` }}
-                  >
-                    {review.reviewer[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-sm font-semibold text-gray-800">{review.reviewer}</span>
-                      <span className="text-xs text-gray-400 shrink-0">{review.date}</span>
+          {reviews && reviews.length > 0 ? (
+            <div className="space-y-5">
+              {reviews.map((review, i) => {
+                const reviewer = review.reviewer as { name: string | null } | null;
+                const name = reviewer?.name ?? 'Anonymous';
+                return (
+                  <div key={review.id}>
+                    {i > 0 && <div className="h-px bg-gray-100 mb-5" />}
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${gradFrom}cc, ${gradTo}cc)` }}
+                      >
+                        {name[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-sm font-semibold text-gray-800">{name}</span>
+                          <span className="text-xs text-gray-400 shrink-0">
+                            {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <Stars rating={review.stars_avg ?? 0} size="sm" />
+                        {review.comment && (
+                          <p className="text-sm text-gray-600 leading-relaxed mt-1.5">{review.comment}</p>
+                        )}
+                      </div>
                     </div>
-                    <Stars rating={review.stars} size="sm" />
-                    <p className="text-sm text-gray-600 leading-relaxed mt-1.5">{review.comment}</p>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">No reviews yet.</p>
+          )}
         </div>
 
       </main>
@@ -398,26 +443,26 @@ export default async function ListingDetailPage({
           <div>
             <p className="text-[11px] text-gray-400">Price per portion</p>
             <p className="text-lg font-extrabold tabular-nums" style={{ color: isFree ? '#16a34a' : '#1a3a2a' }}>
-              {formatPrice(listing.price)}
+              {formatPrice(listing.price_cents)}
             </p>
           </div>
           <div className="flex items-center gap-1">
-            <Stars rating={listing.cookRating} size="sm" />
-            <span className="text-xs font-bold text-gray-600 ml-0.5">{listing.cookRating.toFixed(1)}</span>
+            <Stars rating={cookRating} size="sm" />
+            <span className="text-xs font-bold text-gray-600 ml-0.5">{cookRating.toFixed(1)}</span>
           </div>
         </div>
         <RequestExchangeButton item={{
           listingId: listing.id,
           title: listing.title,
-          cuisine: listing.cuisine,
-          cook: listing.cook,
-          emoji: listing.emoji,
-          price: listing.price,
-          maxPortions: listing.portions,
-          pickupStart: listing.pickupStart,
-          pickupEnd: listing.pickupEnd,
+          cuisine: cuisine,
+          cook: cookName,
+          emoji: listing.emoji ?? '🍱',
+          price: listing.price_cents,
+          maxPortions: listing.quantity_left,
+          pickupStart: listing.pickup_start ?? '',
+          pickupEnd: listing.pickup_end ?? '',
         }} />
-        <MessageSellerButton cookName={listing.cook} listingId={listing.id} />
+        <MessageSellerButton cookName={cookName} listingId={listing.id} />
       </div>
     </div>
   );

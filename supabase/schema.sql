@@ -34,7 +34,9 @@ create table if not exists public.users (
   -- Payment
   stripe_account_id text,
 
-  -- Moderation
+  -- Permit & Moderation
+  permit_status   text default 'none'
+                  check (permit_status in ('none','pending','verified')),
   is_suspended    boolean default false,
   requires_admin_approval boolean default false, -- rating < 3.0
 
@@ -74,7 +76,8 @@ create table if not exists public.listings (
   -- Content
   title           text not null,
   description     text,
-  cuisine_tag     text,                    -- e.g. 'Chinese', 'Mexican', 'Italian'
+  cuisine_tag     text,                    -- matches CUISINE_GRADIENTS keys
+  emoji           text,                    -- display emoji e.g. '🍰'
   allergens       text[] default '{}',     -- REQUIRED before publishing
   photo_urls      text[] default '{}',
   video_url       text,
