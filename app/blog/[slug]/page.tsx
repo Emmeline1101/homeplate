@@ -235,9 +235,10 @@ export default function BlogPostPage() {
         {post.tags?.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-8 pt-6 border-t border-gray-100">
             {post.tags.map(tag => (
-              <span key={tag} className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs">
+              <a key={tag} href={`/blog?tag=${encodeURIComponent(tag)}`}
+                className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs hover:bg-emerald-100 hover:text-emerald-700 transition-colors">
                 #{tag}
-              </span>
+              </a>
             ))}
           </div>
         )}

@@ -5,7 +5,15 @@
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
       "Bash(grep -E \"\\\\.\\(ts|json\\)$\")",
       "Bash(ls /Volumes/storageII/GitHub/homeplate/app/blog/[slug]/)",
-      "Bash(ls /Volumes/storageII/GitHub/homeplate/app/profile/[id])"
+      "Bash(ls /Volumes/storageII/GitHub/homeplate/app/profile/[id])",
+      "Bash(git -C /Volumes/storageII/GitHub/homeplate log --oneline -10)",
+      "Bash(git -C /Volumes/storageII/GitHub/homeplate diff HEAD app/blog/page.tsx)",
+      "Bash(git -C /Volumes/storageII/GitHub/homeplate show HEAD:app/discover/DiscoverFeed.tsx)",
+      "Bash(git -C /Volumes/storageII/GitHub/homeplate stash list)",
+      "Bash(git -C /Volumes/storageII/GitHub/homeplate log --oneline --all)",
+      "Bash(git -C /Volumes/storageII/GitHub/homeplate diff HEAD app/components/Navbar.tsx)",
+      "Bash(git -C /Volumes/storageII/GitHub/homeplate diff HEAD -- app/components/Navbar.tsx)",
+      "Bash(git -C /Volumes/storageII/GitHub/homeplate status --short)"
     ],
     "additionalDirectories": [
       "/Volumes/storageII/GitHub/homeplate/app/blog"

@@ -23,10 +23,13 @@ create table if not exists public.moments (
   created_at    timestamptz not null default now()
 );
 
-create index if not exists moments_user_id_idx   on public.moments(user_id);
+create index if not exists moments_user_id_idx    on public.moments(user_id);
 create index if not exists moments_created_at_idx on public.moments(created_at desc);
+create index if not exists moments_like_count_idx on public.moments(like_count desc);
+-- GIN index for tag array contains queries
+create index if not exists moments_tags_gin_idx   on public.moments using gin(tags);
 -- Bounding-box geo index for nearby queries
-create index if not exists moments_lat_lng_idx   on public.moments(lat, lng);
+create index if not exists moments_lat_lng_idx    on public.moments(lat, lng);
 
 
 -- ============================================================

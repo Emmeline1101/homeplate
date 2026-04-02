@@ -7,9 +7,9 @@ export const metadata = { title: 'Discover · HomePlate' };
 export default async function DiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ focus?: string }>;
+  searchParams: Promise<{ focus?: string; tag?: string; sort?: string }>;
 }) {
-  const { focus } = await searchParams;
+  const { focus, tag, sort } = await searchParams;
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#f7f4ef' }}>
@@ -36,7 +36,7 @@ export default async function DiscoverPage({
           </Link>
         </div>
 
-        <DiscoverFeed focusId={focus} />
+        <DiscoverFeed focusId={focus} activeTag={tag} sort={sort} />
       </main>
     </div>
   );

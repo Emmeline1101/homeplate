@@ -38,6 +38,9 @@ create index if not exists blog_posts_user_id_idx    on public.blog_posts(user_i
 create index if not exists blog_posts_status_idx     on public.blog_posts(status);
 create index if not exists blog_posts_category_idx   on public.blog_posts(category);
 create index if not exists blog_posts_slug_idx       on public.blog_posts(slug);
+create index if not exists blog_posts_like_count_idx on public.blog_posts(like_count desc);
+-- GIN index for tag array contains queries
+create index if not exists blog_posts_tags_gin_idx   on public.blog_posts using gin(tags);
 
 create trigger touch_blog_posts_updated_at
   before update on public.blog_posts

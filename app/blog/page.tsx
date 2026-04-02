@@ -35,9 +35,9 @@ function formatDate(iso: string) {
 export default async function BlogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; tag?: string }>;
 }) {
-  const { category } = await searchParams;
+  const { category, tag } = await searchParams;
   const supabase = await createClient();
 
   let query = (supabase as any)
@@ -50,7 +50,22 @@ export default async function BlogPage({
     query = query.eq('category', category);
   }
 
-  const { data } = await query;
+  if (tag) {
+    query = query.contains('tags', [tag]);
+  }
+
+  const [{ data }, { data: trendingData }] = await Promise.all([
+    query,
+    (supabase as any)
+      .from('blog_posts')
+      .select('id, slug, title, category, like_count, view_count')
+      .eq('status', 'published')
+      .order('like_count', { ascending: false })
+      .limit(5),
+  ]);
+
+  const trendingPosts: { id: string; slug: string; title: string; category: keyof typeof CATEGORIES; like_count: number; view_count: number }[] =
+    (trendingData as any[]) ?? [];
 
   const posts: BlogPost[] = ((data as any[]) ?? []).map((r: any) => ({
     id: r.id,
@@ -101,15 +116,18 @@ export default async function BlogPage({
         </div>
 
         {/* Category tabs */}
-        <div className="flex gap-2 flex-wrap mb-8">
+        <div className="flex gap-2 flex-wrap mb-3">
           {([['', 'All', '📚']] as [string, string, string][]).concat(
             Object.entries(CATEGORIES).map(([k, v]) => [k, v.label, v.emoji])
           ).map(([key, label, emoji]) => {
-            const active = (category ?? '') === key;
+            const active = (category ?? '') === key && !tag;
+            const href = key
+              ? `/blog?category=${key}${tag ? `&tag=${encodeURIComponent(tag)}` : ''}`
+              : tag ? `/blog?tag=${encodeURIComponent(tag)}` : '/blog';
             return (
               <Link
                 key={key}
-                href={key ? `/blog?category=${key}` : '/blog'}
+                href={href}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${
                   active
                     ? 'text-white border-transparent'
@@ -122,6 +140,58 @@ export default async function BlogPage({
             );
           })}
         </div>
+
+        {/* Active tag filter indicator */}
+        {tag && (
+          <div className="flex items-center gap-2 mb-8">
+            <span className="text-sm text-gray-500">Tag:</span>
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold text-white"
+              style={{ backgroundColor: '#1a3a2a' }}>
+              #{tag}
+              <Link href={category ? `/blog?category=${category}` : '/blog'}
+                className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                aria-label="Clear tag filter">
+                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </Link>
+            </span>
+          </div>
+        )}
+        {!tag && <div className="mb-8" />}
+
+        {/* Trending Posts */}
+        {trendingPosts.length > 0 && (
+          <div className="mb-8 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-gray-50">
+              <span className="text-base">🔥</span>
+              <h2 className="text-sm font-bold text-gray-700">Trending Now</h2>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {trendingPosts.map((post, i) => (
+                <Link
+                  key={post.id}
+                  href={`/blog/${post.slug}`}
+                  className="flex items-center gap-4 px-5 py-3 group hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-xl font-black text-gray-200 w-6 shrink-0 text-center">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 group-hover:text-amber-600 transition-colors line-clamp-1">
+                      {post.title}
+                    </p>
+                    <span className={`inline-block text-xs px-1.5 py-0.5 rounded-full mt-0.5 ${CATEGORIES[post.category].color}`}>
+                      {CATEGORIES[post.category].emoji} {CATEGORIES[post.category].label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0 text-xs text-gray-400">
+                    <span>❤️ {post.like_count}</span>
+                    <span>👁 {post.view_count}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {posts.length === 0 ? (
           <div className="text-center py-24 text-gray-400">
