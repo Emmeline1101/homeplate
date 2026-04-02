@@ -2,6 +2,53 @@
 
 import { useState, useRef, useEffect } from 'react';
 
+function renderMarkdown(text: string) {
+  // Split into lines to handle block-level elements
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let key = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) {
+      // skip blank lines between blocks
+      continue;
+    }
+
+    // Bullet list item
+    if (/^[-*•]\s+/.test(line)) {
+      // collect consecutive list items
+      const items: string[] = [];
+      while (i < lines.length && /^[-*•]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^[-*•]\s+/, ''));
+        i++;
+      }
+      i--; // back up one since the for loop will increment
+      elements.push(
+        <ul key={key++} className="list-disc list-inside space-y-0.5 my-1">
+          {items.map((item, j) => (
+            <li key={j}>{inlineMarkdown(item)}</li>
+          ))}
+        </ul>
+      );
+    } else {
+      elements.push(<p key={key++} className="my-0.5">{inlineMarkdown(line)}</p>);
+    }
+  }
+  return elements;
+}
+
+function inlineMarkdown(text: string): React.ReactNode[] {
+  // Handle **bold** inline
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 type Message = { role: 'user' | 'assistant'; content: string };
 
 const STARTERS = [
@@ -120,7 +167,7 @@ export default function AIChatBox() {
                   }`}
                   style={m.role === 'user' ? { backgroundColor: '#1a3a2a' } : {}}
                 >
-                  {m.content}
+                  {m.role === 'assistant' ? renderMarkdown(m.content) : m.content}
                 </div>
               </div>
             ))}

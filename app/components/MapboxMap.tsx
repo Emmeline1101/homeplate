@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -24,8 +24,12 @@ const FORK_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white" x
 </svg>`;
 
 export default function MapboxMap() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef       = useRef<mapboxgl.Map | null>(null);
+  const containerRef  = useRef<HTMLDivElement>(null);
+  const mapRef        = useRef<mapboxgl.Map | null>(null);
+  const geoCtrlRef    = useRef<mapboxgl.GeolocateControl | null>(null);
+  const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locError, setLocError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -41,6 +45,16 @@ export default function MapboxMap() {
 
     mapRef.current = map;
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+
+    // Built-in geolocation control (blue dot + heading arc)
+    const geoCtrl = new mapboxgl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: true,
+      showUserHeading: true,
+      showAccuracyCircle: true,
+    });
+    map.addControl(geoCtrl, 'top-right');
+    geoCtrlRef.current = geoCtrl;
 
     map.on('load', () => {
       PINS.forEach((pin) => {
@@ -78,8 +92,119 @@ export default function MapboxMap() {
       });
     });
 
-    return () => { map.remove(); mapRef.current = null; };
+    return () => { map.remove(); mapRef.current = null; userMarkerRef.current = null; };
   }, []);
 
-  return <div ref={containerRef} className="w-full h-full" />;
+  function handleLocateMe() {
+    setLocError(null);
+    setLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        const map = mapRef.current;
+        if (!map) return;
+
+        // Remove previous user marker if any
+        userMarkerRef.current?.remove();
+
+        // Custom "you are here" marker
+        const el = document.createElement('div');
+        el.style.cssText = `
+          width:20px; height:20px; border-radius:50%;
+          background-color:#3b82f6; border:3px solid white;
+          box-shadow:0 0 0 4px rgba(59,130,246,0.35);
+        `;
+        userMarkerRef.current = new mapboxgl.Marker({ element: el })
+          .setLngLat([lng, lat])
+          .setPopup(
+            new mapboxgl.Popup({ offset: 16, closeButton: false })
+              .setHTML(`<div style="font-family:Inter,sans-serif;font-size:12px;font-weight:600;color:#1e40af">You are here</div>`)
+          )
+          .addTo(map);
+
+        map.flyTo({ center: [lng, lat], zoom: 12, speed: 1.4 });
+        setLocating(false);
+      },
+      (err) => {
+        setLocating(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocError('Location access denied. Please allow it in browser settings.');
+        } else {
+          setLocError('Could not get your location.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      <div ref={containerRef} className="w-full h-full" />
+
+      {/* Custom "Locate Me" button */}
+      <button
+        onClick={handleLocateMe}
+        disabled={locating}
+        title="Go to my location"
+        style={{
+          position: 'absolute',
+          bottom: 24,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '8px 16px',
+          borderRadius: '9999px',
+          background: '#1a3a2a',
+          color: 'white',
+          fontSize: '13px',
+          fontWeight: 600,
+          border: '1.5px solid rgba(255,255,255,0.15)',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
+          cursor: locating ? 'wait' : 'pointer',
+          opacity: locating ? 0.7 : 1,
+          transition: 'opacity 0.15s',
+        }}
+      >
+        {locating ? (
+          <>
+            <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+            Locating…
+          </>
+        ) : (
+          <>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/>
+            </svg>
+            Near me
+          </>
+        )}
+      </button>
+
+      {/* Error toast */}
+      {locError && (
+        <div style={{
+          position: 'absolute',
+          bottom: 72,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10,
+          background: '#7f1d1d',
+          color: '#fecaca',
+          fontSize: '12px',
+          padding: '6px 14px',
+          borderRadius: '8px',
+          whiteSpace: 'nowrap',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        }}>
+          {locError}
+        </div>
+      )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 }
