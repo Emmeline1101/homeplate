@@ -82,6 +82,15 @@ export default async function ProfilePage({
     .in('status', ['active', 'draft'])
     .order('created_at', { ascending: false });
 
+  // Fetch this user's published blog posts
+  const { data: blogPosts } = await (supabase as any)
+    .from('blog_posts')
+    .select('id, slug, title, excerpt, cover_image_url, category, like_count, view_count, created_at')
+    .eq('user_id', profileUserId)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false })
+    .limit(6);
+
   // Fetch reviews received
   const { data: reviews } = await supabase
     .from('reviews')
@@ -285,6 +294,62 @@ export default async function ProfilePage({
             </div>
           )}
         </div>
+
+        {/* ── Blog Posts ── */}
+        {(blogPosts && blogPosts.length > 0) || isOwnProfile ? (
+          <div className="bg-white rounded-3xl border border-black/[0.05] shadow-sm p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-base" style={{ color: '#1a3a2a' }}>
+                {isOwnProfile ? 'My Blog Posts' : `${profile.name ?? 'Cook'}'s Posts`}
+              </h2>
+              {isOwnProfile && (
+                <Link href="/blog/write" className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                  ✏️ Write a Post
+                </Link>
+              )}
+            </div>
+            {!blogPosts || blogPosts.length === 0 ? (
+              <p className="text-sm text-gray-400">No posts yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {(blogPosts as any[]).map((post: any) => (
+                  <Link
+                    key={post.id}
+                    href={`/blog/${post.slug}`}
+                    className="flex items-start gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors group"
+                  >
+                    {post.cover_image_url ? (
+                      <img
+                        src={post.cover_image_url}
+                        alt={post.title}
+                        className="w-14 h-14 rounded-xl object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0 bg-amber-50">
+                        📝
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate group-hover:text-amber-600 transition-colors" style={{ color: '#1a3a2a' }}>
+                        {post.title}
+                      </p>
+                      {post.excerpt && (
+                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{post.excerpt}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                        <span>❤️ {post.like_count}</span>
+                        <span>·</span>
+                        <span>👁 {post.view_count}</span>
+                        <span>·</span>
+                        <span>{new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
 
         <div className="h-4" />
       </main>
