@@ -113,7 +113,7 @@ export default async function ProfilePage({
   // Fetch this cook's listings
   const { data: cookListings } = await supabase
     .from('listings')
-    .select('id, title, cuisine_tag, emoji, quantity_left, quantity_total, price_cents, status')
+    .select('id, title, cuisine_tag, emoji, photo_urls, quantity_left, quantity_total, price_cents, status')
     .eq('user_id', profileUserId)
     .in('status', ['active', 'draft'])
     .order('created_at', { ascending: false });
@@ -319,11 +319,21 @@ export default async function ProfilePage({
                     href={`/listings/${l.id}`}
                     className="flex items-center gap-3.5 p-3 rounded-2xl hover:bg-gray-50 transition-colors group"
                   >
-                    <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 transition-transform duration-300 group-hover:scale-105"
-                      style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
-                    >
-                      {l.emoji ?? '🍱'}
+                    <div className="w-14 h-14 rounded-2xl shrink-0 overflow-hidden transition-transform duration-300 group-hover:scale-105">
+                      {l.photo_urls?.[0] ? (
+                        <img
+                          src={l.photo_urls[0]}
+                          alt={l.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center text-2xl"
+                          style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
+                        >
+                          {l.emoji ?? '🍱'}
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold truncate" style={{ color: '#1a3a2a' }}>{l.title}</p>

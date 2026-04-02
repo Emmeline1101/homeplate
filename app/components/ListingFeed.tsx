@@ -11,6 +11,7 @@ type FeedListing = {
   title: string
   cuisine_tag: string | null
   emoji: string | null
+  photo_urls: string[]
   quantity_left: number
   quantity_total: number
   price_cents: number
@@ -21,6 +22,19 @@ type FeedListing = {
     city: string | null
   } | null
 }
+
+// Curated Unsplash fallback photos per cuisine tag
+const CUISINE_PHOTOS: Record<string, string> = {
+  'Baked Goods':        'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&q=75&auto=format&fit=crop',
+  'Asian Sweets':       'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&q=75&auto=format&fit=crop',
+  'Jams & Preserves':   'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=400&q=75&auto=format&fit=crop',
+  'Confections':        'https://images.unsplash.com/photo-1548907040-4baa3e63a2a3?w=400&q=75&auto=format&fit=crop',
+  'Dried & Packaged':   'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=75&auto=format&fit=crop',
+  'Fermented':          'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=400&q=75&auto=format&fit=crop',
+  'Noodles & Pantry':   'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400&q=75&auto=format&fit=crop',
+  'Cookies & Biscuits': 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=400&q=75&auto=format&fit=crop',
+}
+const DEFAULT_PHOTO = 'https://images.unsplash.com/photo-1493770348161-369560ae357d?w=400&q=75&auto=format&fit=crop'
 
 const CATEGORIES: { label: string; emoji: string }[] = [
   { label: 'All',                emoji: '✨' },
@@ -37,8 +51,6 @@ const CATEGORIES: { label: string; emoji: string }[] = [
 function formatPrice(cents: number) {
   return cents === 0 ? 'Free' : `$${(cents / 100).toFixed(2)}`;
 }
-
-const NOISE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E")`;
 
 // ── Card ─────────────────────────────────────────────────────────────────────
 
@@ -59,21 +71,17 @@ function ListingCard({ l }: { l: FeedListing }) {
     >
       {/* Hero image area */}
       <div className="relative w-full overflow-hidden" style={{ paddingBottom: '75%' }}>
-        <div
-          className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.04]"
-          style={{ background: `linear-gradient(150deg, ${from} 0%, ${to} 100%)` }}
-        />
-        <div
-          className="absolute inset-0 mix-blend-overlay opacity-30"
-          style={{ backgroundImage: NOISE, backgroundSize: '180px' }}
-        />
+        {(() => {
+          const photoSrc = l.photo_urls?.[0] ?? CUISINE_PHOTOS[cuisine] ?? DEFAULT_PHOTO;
+          return (
+            <img
+              src={photoSrc}
+              alt={l.title}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            />
+          );
+        })()}
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 0%, transparent 40%, rgba(0,0,0,0.18) 100%)' }} />
-
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[64px] leading-none drop-shadow-lg select-none transition-transform duration-500 group-hover:scale-110">
-            {l.emoji ?? '🍱'}
-          </span>
-        </div>
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex gap-1.5">
@@ -179,7 +187,7 @@ export default function ListingFeed() {
     const supabase = createClient();
     supabase
       .from('listings')
-      .select('id, title, cuisine_tag, emoji, quantity_left, quantity_total, price_cents, users:user_id(name, rating_avg, top_cook_badge, city)')
+      .select('id, title, cuisine_tag, emoji, photo_urls, quantity_left, quantity_total, price_cents, users:user_id(name, rating_avg, top_cook_badge, city)')
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .then(({ data }) => {
