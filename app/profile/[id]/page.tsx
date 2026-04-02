@@ -67,13 +67,25 @@ export default async function ProfilePage({
   }
 
   // Fetch profile
-  const { data: profile } = await supabase
+  let { data: profile, error: profileError } = await supabase
     .from('users')
     .select('id, name, email, avatar_url, bio, city, state, rating_avg, review_count, follower_count, following_count, top_cook_badge, permit_status')
     .eq('id', profileUserId)
     .single();
 
-  if (!profile) notFound();
+  if (profileError) console.error('[profile] query error:', JSON.stringify(profileError));
+
+  // Fallback: if follower_count/following_count columns don't exist yet (follows.sql not applied)
+  if (!profile) {
+    const { data: fallback, error: fallbackError } = await supabase
+      .from('users')
+      .select('id, name, email, avatar_url, bio, city, state, rating_avg, review_count, top_cook_badge, permit_status')
+      .eq('id', profileUserId)
+      .single();
+    if (fallbackError) console.error('[profile] fallback error:', JSON.stringify(fallbackError));
+    if (!fallback) notFound();
+    profile = { follower_count: 0, following_count: 0, ...fallback } as typeof profile;
+  }
 
   // Fetch follow status (only needed when viewing another user's profile)
   let isFollowing = false;

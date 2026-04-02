@@ -13,7 +13,13 @@
       "Bash(git -C /Volumes/storageII/GitHub/homeplate log --oneline --all)",
       "Bash(git -C /Volumes/storageII/GitHub/homeplate diff HEAD app/components/Navbar.tsx)",
       "Bash(git -C /Volumes/storageII/GitHub/homeplate diff HEAD -- app/components/Navbar.tsx)",
-      "Bash(git -C /Volumes/storageII/GitHub/homeplate status --short)"
+      "Bash(git -C /Volumes/storageII/GitHub/homeplate status --short)",
+      "Bash(ls /Volumes/storageII/GitHub/homeplate/app/profile/[id]/)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:3000/profile/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\")",
+      "Read(//private/tmp/**)",
+      "Bash(kill 59745)",
+      "Bash(curl -sv \"http://localhost:3000/profile/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\")"
     ],
     "additionalDirectories": [
       "/Volumes/storageII/GitHub/homeplate/app/blog"
