@@ -4,7 +4,8 @@
       "Bash(grep -l \"const.*\\\\[\\\\s*{\" /Volumes/storageII/GitHub/homeplate/app/components/*.tsx /Volumes/storageII/GitHub/homeplate/app/lib/*.tsx)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
       "Bash(grep -E \"\\\\.\\(ts|json\\)$\")",
-      "Bash(ls /Volumes/storageII/GitHub/homeplate/app/blog/[slug]/)"
+      "Bash(ls /Volumes/storageII/GitHub/homeplate/app/blog/[slug]/)",
+      "Bash(ls /Volumes/storageII/GitHub/homeplate/app/profile/[id])"
     ],
     "additionalDirectories": [
       "/Volumes/storageII/GitHub/homeplate/app/blog"

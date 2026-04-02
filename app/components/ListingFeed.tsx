@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CUISINE_GRADIENTS as GRADIENTS } from '../lib/mock';
 import { createClient } from '../lib/supabase';
+import DiscoverStrip from './DiscoverStrip';
 
 type FeedListing = {
   id: string
@@ -196,8 +197,11 @@ export default function ListingFeed() {
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#f7f4ef' }}>
 
+      {/* Discover strip */}
+      <DiscoverStrip />
+
       {/* Header */}
-      <div className="shrink-0 px-5 pt-5 pb-2">
+      <div className="shrink-0 px-5 pt-4 pb-2">
         <p className="text-[11px] font-semibold tracking-widest uppercase text-gray-400 mb-1">Community</p>
         <h2 className="text-xl font-extrabold tracking-tight mb-4" style={{ color: '#1a3a2a' }}>
           Cottage food near you

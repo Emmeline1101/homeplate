@@ -91,6 +91,14 @@ export default async function ProfilePage({
     .order('created_at', { ascending: false })
     .limit(6);
 
+  // Fetch this user's moments
+  const { data: moments } = await (supabase as any)
+    .from('moments')
+    .select('id, caption, photo_urls, like_count, comment_count, created_at')
+    .eq('user_id', profileUserId)
+    .order('created_at', { ascending: false })
+    .limit(18);
+
   // Fetch reviews received
   const { data: reviews } = await supabase
     .from('reviews')
@@ -193,9 +201,10 @@ export default async function ProfilePage({
         </div>
 
         {/* ── Stats row ── */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           {[
             { label: 'Listings',  value: cookListings?.length ?? 0,             suffix: '' },
+            { label: 'Moments',   value: (moments as any[] | null)?.length ?? 0, suffix: '' },
             { label: 'Reviews',   value: profile.review_count ?? 0,             suffix: '' },
             { label: 'Rating',    value: (profile.rating_avg ?? 0).toFixed(1),  suffix: '★' },
           ].map(({ label, value, suffix }) => (
@@ -344,6 +353,64 @@ export default async function ProfilePage({
                         <span>{new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                       </div>
                     </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {/* ── Moments ── */}
+        {((moments as any[] | null) && (moments as any[]).length > 0) || isOwnProfile ? (
+          <div className="bg-white rounded-3xl border border-black/[0.05] shadow-sm p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-base" style={{ color: '#1a3a2a' }}>
+                {isOwnProfile ? 'My Moments' : `${profile.name ?? 'Cook'}'s Moments`}
+              </h2>
+              {isOwnProfile && (
+                <Link href="/discover/new" className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                  + Share
+                </Link>
+              )}
+            </div>
+            {!(moments as any[] | null) || (moments as any[]).length === 0 ? (
+              <p className="text-sm text-gray-400">No moments yet.</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-1.5">
+                {(moments as any[]).map((m: any) => (
+                  <Link
+                    key={m.id}
+                    href={`/discover?focus=${m.id}`}
+                    className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group"
+                  >
+                    {m.photo_urls?.[0] ? (
+                      <img
+                        src={m.photo_urls[0]}
+                        alt={m.caption ?? ''}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full flex items-center justify-center text-2xl"
+                        style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)' }}
+                      >
+                        📸
+                      </div>
+                    )}
+                    {/* Overlay on hover */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <div className="flex gap-3 text-white text-xs font-bold">
+                        <span>♥ {m.like_count}</span>
+                        <span>💬 {m.comment_count}</span>
+                      </div>
+                    </div>
+                    {m.photo_urls?.length > 1 && (
+                      <div className="absolute top-2 right-2 w-4 h-4">
+                        <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4 drop-shadow">
+                          <path d="M4 6a2 2 0 012-2h2.5M20 18a2 2 0 01-2 2h-2.5M8.5 4H18a2 2 0 012 2v9.5M4 8.5V18a2 2 0 002 2h9.5" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none"/>
+                        </svg>
+                      </div>
+                    )}
                   </Link>
                 ))}
               </div>
