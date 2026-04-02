@@ -1,7 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 const SYSTEM = `You are a friendly assistant on HomeBites, a community marketplace for Asian cottage food makers in California.
 
 Your expertise:
@@ -20,13 +16,32 @@ export async function POST(req: Request) {
     messages: { role: 'user' | 'assistant'; content: string }[];
   };
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 400,
-    system: SYSTEM,
-    messages,
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'nvidia/nemotron-3-nano-30b-a3b:free',
+      max_tokens: 400,
+      messages: [
+        { role: 'system', content: SYSTEM },
+        ...messages,
+      ],
+    }),
   });
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  const data = await res.json() as {
+    choices?: { message: { content: string } }[];
+    error?: { message: string };
+  };
+
+  if (!res.ok || data.error) {
+    console.error('[/api/chat] OpenRouter error:', res.status, data.error ?? data);
+    return Response.json({ text: 'Sorry, something went wrong. Please try again.' }, { status: 500 });
+  }
+
+  const text = data.choices?.[0]?.message?.content ?? '';
   return Response.json({ text });
 }
