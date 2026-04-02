@@ -78,6 +78,9 @@ export default function Navbar() {
 
         {/* Nav links — desktop */}
         <div className="hidden md:flex items-center gap-1 shrink-0">
+          <Link href="/discover" className="px-3 py-1.5 rounded-full text-sm text-gray-600 hover:bg-gray-100 transition-colors font-medium">
+            Discover
+          </Link>
           <Link href="/blog" className="px-3 py-1.5 rounded-full text-sm text-gray-600 hover:bg-gray-100 transition-colors font-medium">
             Blog
           </Link>
@@ -151,6 +154,7 @@ export default function Navbar() {
                     </div>
                     {[
                       { href: '/profile/me', label: '👤 My Profile' },
+                      { href: '/discover', label: '✨ Discover' },
                       { href: '/messages', label: '💬 Messages' },
                       { href: '/post', label: '🍱 Share a Bite' },
                     ].map(({ href, label }) => (
@@ -236,6 +240,7 @@ export default function Navbar() {
               <div className="border-t border-gray-100 pt-2 space-y-1">
                 {[
                   { href: '/', label: '🏠 Home' },
+                  { href: '/discover', label: '✨ Discover' },
                   { href: '/search', label: '🔍 Search' },
                   { href: '/blog', label: '📝 Blog' },
                   { href: '/messages', label: '💬 Messages' },
@@ -266,6 +271,7 @@ export default function Navbar() {
               <div className="border-t border-gray-100 pt-2 space-y-1">
                 {[
                   { href: '/', label: '🏠 Home' },
+                  { href: '/discover', label: '✨ Discover' },
                   { href: '/search', label: '🔍 Search' },
                   { href: '/blog', label: '📝 Blog' },
                 ].map(({ href, label }) => (
