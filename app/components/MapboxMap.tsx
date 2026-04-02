@@ -44,6 +44,10 @@ export default function MapboxMap() {
     });
 
     mapRef.current = map;
+
+    // Auto-resize map whenever its container changes size (drag resize, fullscreen, etc.)
+    const ro = new ResizeObserver(() => { map.resize(); });
+    ro.observe(containerRef.current);
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
 
     // Built-in geolocation control (blue dot + heading arc)
@@ -92,7 +96,7 @@ export default function MapboxMap() {
       });
     });
 
-    return () => { map.remove(); mapRef.current = null; userMarkerRef.current = null; };
+    return () => { ro.disconnect(); map.remove(); mapRef.current = null; userMarkerRef.current = null; };
   }, []);
 
   function handleLocateMe() {
