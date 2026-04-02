@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import Navbar from '../../components/Navbar';
+import { createClient } from '../../lib/supabaseServer';
 import { LISTINGS, CUISINE_GRADIENTS } from '../../lib/mock';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -52,13 +54,24 @@ export default async function ProfilePage({
 }) {
   const { id } = await params;
 
+  // Fetch real user data for the current user's profile
+  let realUserName: string | null = null;
+  let realUserEmail: string | null = null;
+  if (id === 'me') {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect('/auth/signin');
+    realUserName = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Me';
+    realUserEmail = user.email ?? null;
+  }
+
   const allListings = LISTINGS;
   const cookListings = id === 'me'
     ? allListings.slice(0, 4)
     : allListings.filter(l => l.id === id || l.cook.toLowerCase().replace(/\s+/g, '-') === id);
 
   const sample      = cookListings[0] ?? allListings[0];
-  const cookName    = id === 'me' ? 'You' : sample.cook;
+  const cookName    = id === 'me' ? (realUserName ?? 'Me') : sample.cook;
   const cookCity    = sample.cookCity;
   const cookRating  = sample.cookRating;
   const cookReviews = sample.cookReviews;
@@ -129,6 +142,9 @@ export default async function ProfilePage({
                 )}
               </div>
 
+              {id === 'me' && realUserEmail && (
+                <p className="text-sm text-gray-400">{realUserEmail}</p>
+              )}
               <p className="text-sm text-gray-500 flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
