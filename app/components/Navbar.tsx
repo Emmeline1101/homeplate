@@ -76,6 +76,13 @@ export default function Navbar() {
           </span>
         </Link>
 
+        {/* Nav links — desktop */}
+        <div className="hidden md:flex items-center gap-1 shrink-0">
+          <Link href="/blog" className="px-3 py-1.5 rounded-full text-sm text-gray-600 hover:bg-gray-100 transition-colors font-medium">
+            Blog
+          </Link>
+        </div>
+
         {/* Search bar — desktop */}
         <div className="hidden md:flex flex-1 max-w-lg mx-auto">
           <Link href="/search" className="relative w-full group">
@@ -230,6 +237,7 @@ export default function Navbar() {
                 {[
                   { href: '/', label: '🏠 Home' },
                   { href: '/search', label: '🔍 Search' },
+                  { href: '/blog', label: '📝 Blog' },
                   { href: '/messages', label: '💬 Messages' },
                   { href: '/profile/me', label: '👤 My Profile' },
                 ].map(({ href, label }) => (
@@ -259,6 +267,7 @@ export default function Navbar() {
                 {[
                   { href: '/', label: '🏠 Home' },
                   { href: '/search', label: '🔍 Search' },
+                  { href: '/blog', label: '📝 Blog' },
                 ].map(({ href, label }) => (
                   <Link key={href} href={href} onClick={() => setMenuOpen(false)}
                     className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">
