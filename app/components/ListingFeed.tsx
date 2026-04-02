@@ -156,8 +156,21 @@ function ListingCard({ l }: { l: FeedListing }) {
 
 // ── Feed ─────────────────────────────────────────────────────────────────────
 
+type SortMode = 'newest' | 'price-asc' | 'price-desc' | 'rating';
+
+function sortListings(items: FeedListing[], mode: SortMode): FeedListing[] {
+  const copy = [...items];
+  switch (mode) {
+    case 'price-asc':  return copy.sort((a, b) => a.price_cents - b.price_cents);
+    case 'price-desc': return copy.sort((a, b) => b.price_cents - a.price_cents);
+    case 'rating':     return copy.sort((a, b) => (b.users?.rating_avg ?? 0) - (a.users?.rating_avg ?? 0));
+    default:           return copy; // already ordered by created_at desc from DB
+  }
+}
+
 export default function ListingFeed() {
   const [active, setActive]       = useState('All');
+  const [sortMode, setSortMode]   = useState<SortMode>('newest');
   const [listings, setListings]   = useState<FeedListing[]>([]);
   const [loading, setLoading]     = useState(true);
 
@@ -174,9 +187,11 @@ export default function ListingFeed() {
       });
   }, []);
 
-  const filtered = active === 'All'
+  const categoryFiltered = active === 'All'
     ? listings
     : listings.filter(l => l.cuisine_tag === active);
+
+  const filtered = sortListings(categoryFiltered, sortMode);
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#f7f4ef' }}>
@@ -215,9 +230,15 @@ export default function ListingFeed() {
         <p className="text-xs text-gray-400">
           <span className="font-semibold text-gray-600">{filtered.length}</span> listings
         </p>
-        <select className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-amber-300 cursor-pointer">
-          <option>Newest first</option>
-          <option>Price: Low → High</option>
+        <select
+          value={sortMode}
+          onChange={e => setSortMode(e.target.value as SortMode)}
+          className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-amber-300 cursor-pointer"
+        >
+          <option value="newest">Newest first</option>
+          <option value="price-asc">Price: Low → High</option>
+          <option value="price-desc">Price: High → Low</option>
+          <option value="rating">Top rated</option>
         </select>
       </div>
 
