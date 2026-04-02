@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import FollowButton from '../../components/FollowButton';
+import EditProfileModal from './EditProfileModal';
 import { createClient } from '../../lib/supabaseServer';
 import { CUISINE_GRADIENTS } from '../../lib/mock';
 
@@ -69,7 +70,7 @@ export default async function ProfilePage({
   // Fetch profile
   let { data: profile, error: profileError } = await supabase
     .from('users')
-    .select('id, name, email, avatar_url, bio, city, state, rating_avg, review_count, follower_count, following_count, top_cook_badge, permit_status')
+    .select('id, name, email, avatar_url, cover_url, bio, city, state, rating_avg, review_count, follower_count, following_count, top_cook_badge, permit_status')
     .eq('id', profileUserId)
     .single();
 
@@ -79,7 +80,7 @@ export default async function ProfilePage({
   if (!profile) {
     const { data: fallback, error: fallbackError } = await supabase
       .from('users')
-      .select('id, name, email, avatar_url, bio, city, state, rating_avg, review_count, top_cook_badge, permit_status')
+      .select('id, name, email, avatar_url, cover_url, bio, city, state, rating_avg, review_count, top_cook_badge, permit_status')
       .eq('id', profileUserId)
       .single();
     if (fallbackError) console.error('[profile] fallback error:', JSON.stringify(fallbackError));
@@ -155,10 +156,18 @@ export default async function ProfilePage({
 
       {/* ── Cover ── */}
       <div className="relative w-full overflow-hidden" style={{ height: 160 }}>
-        <div
-          className="absolute inset-0"
-          style={{ background: `linear-gradient(150deg, ${coverFrom} 0%, ${coverTo} 100%)` }}
-        />
+        {('cover_url' in profile && (profile as { cover_url: string | null }).cover_url) ? (
+          <img
+            src={(profile as { cover_url: string }).cover_url}
+            alt="Cover"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(150deg, ${coverFrom} 0%, ${coverTo} 100%)` }}
+          />
+        )}
         <div
           className="absolute inset-0 mix-blend-overlay opacity-25"
           style={{ backgroundImage: NOISE, backgroundSize: '180px' }}
@@ -180,15 +189,28 @@ export default async function ProfilePage({
           <div className="px-5 pb-6 pt-3">
             <div className="flex items-end justify-between mb-4">
               <div
-                className="w-20 h-20 rounded-2xl border-4 border-white flex items-center justify-center text-3xl font-bold text-white shadow-md"
+                className="w-20 h-20 rounded-2xl border-4 border-white shadow-md overflow-hidden flex items-center justify-center text-3xl font-bold text-white shrink-0"
                 style={{ background: `linear-gradient(135deg, ${coverFrom}, ${coverTo})` }}
               >
-                {profile.name?.[0] ?? '?'}
+                {profile.avatar_url ? (
+                  <img src={profile.avatar_url} alt={profile.name ?? ''} className="w-full h-full object-cover" />
+                ) : (
+                  profile.name?.[0] ?? '?'
+                )}
               </div>
               {isOwnProfile ? (
-                <button className="text-xs font-semibold px-3.5 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                  Edit Profile
-                </button>
+                <EditProfileModal
+                  profile={{
+                    name: profile.name,
+                    bio: profile.bio,
+                    city: profile.city,
+                    state: profile.state,
+                    avatar_url: profile.avatar_url,
+                    cover_url: ('cover_url' in profile ? (profile as { cover_url: string | null }).cover_url : null),
+                  }}
+                  coverFrom={coverFrom}
+                  coverTo={coverTo}
+                />
               ) : authUser ? (
                 <FollowButton
                   targetId={profileUserId}
