@@ -10,11 +10,6 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
-import {
-  PayPalScriptProvider,
-  PayPalButtons,
-  type OnApproveData,
-} from '@paypal/react-paypal-js';
 import { useCart, type CartItem } from '../lib/cartStore';
 import Navbar from '../components/Navbar';
 import BackButton from '../components/BackButton';
@@ -136,47 +131,7 @@ function StripeForm({ onSuccess }: { onSuccess: () => void }) {
 
 // ── PayPal Section ────────────────────────────────────────────────────────────
 
-function PayPalSection({ amount, onSuccess }: { amount: number; onSuccess: () => void }) {
-  const [error, setError] = useState<string | null>(null);
-
-  async function createOrder() {
-    const res  = await fetch('/api/paypal/create-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount }),
-    });
-    const data = await res.json() as { orderID: string };
-    return data.orderID;
-  }
-
-  async function onApprove(data: OnApproveData) {
-    const res = await fetch('/api/paypal/capture-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderID: data.orderID }),
-    });
-    const result = await res.json() as { capture?: { status: string } };
-    if (result.capture?.status === 'COMPLETED') {
-      onSuccess();
-    } else {
-      setError('PayPal payment could not be completed. Please try again.');
-    }
-  }
-
-  return (
-    <div className="space-y-3">
-      <PayPalButtons
-        style={{ layout: 'vertical', shape: 'rect', label: 'pay' }}
-        createOrder={createOrder}
-        onApprove={onApprove}
-        onError={() => setError('PayPal encountered an error. Please try again.')}
-      />
-      {error && (
-        <p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-2">{error}</p>
-      )}
-    </div>
-  );
-}
+// PayPal support removed — only Stripe is used for payments now.
 
 // ── Confirmed State ───────────────────────────────────────────────────────────
 
@@ -232,7 +187,7 @@ function SafetyModal({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-type PayMethod = 'card' | 'paypal';
+type PayMethod = 'card';
 
 export default function CheckoutPage() {
   const { items, totalPrice, clear } = useCart();
@@ -298,7 +253,6 @@ export default function CheckoutPage() {
     if (m === 'card' && !clientSecret) fetchIntent();
   }
 
-  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? '';
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#faf7f2' }}>
@@ -345,7 +299,7 @@ export default function CheckoutPage() {
 
                 {/* Method tabs */}
                 <div className="flex gap-3">
-                  {(['card', 'paypal'] as PayMethod[]).map(m => (
+                  {(['card'] as PayMethod[]).map(m => (
                     <button
                       key={m}
                       onClick={() => selectMethod(m)}
@@ -405,18 +359,7 @@ export default function CheckoutPage() {
                   )
                 )}
 
-                {/* PayPal */}
-                {payMethod === 'paypal' && (
-                  paypalClientId ? (
-                    <PayPalScriptProvider options={{ clientId: paypalClientId, currency: 'USD' }}>
-                      <PayPalSection amount={totalPrice} onSuccess={handlePaymentSuccess} />
-                    </PayPalScriptProvider>
-                  ) : (
-                    <p className="text-sm text-red-500 text-center py-4">
-                      PayPal not configured. Add <code>NEXT_PUBLIC_PAYPAL_CLIENT_ID</code> to <code>.env.local</code>.
-                    </p>
-                  )
-                )}
+                {/* PayPal removed — only card payments supported */}
               </div>
             )}
           </>
