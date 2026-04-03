@@ -11,7 +11,7 @@ export type Json =
 
 // ---- Row types (what comes back from SELECT) ----
 
-export interface User {
+export type User = {
   id: string
   email: string
   name: string | null
@@ -37,13 +37,13 @@ export interface User {
   updated_at: string
 }
 
-export interface Follow {
+export type Follow = {
   follower_id: string
   following_id: string
   created_at: string
 }
 
-export interface Listing {
+export type Listing = {
   id: string
   user_id: string
   title: string
@@ -72,7 +72,18 @@ export interface Listing {
   updated_at: string
 }
 
-export interface Recipe {
+export type RecipeIngredient = {
+  name: string
+  amount: string
+  unit: string
+}
+
+export type RecipeStep = {
+  step_number: number
+  instruction: string
+}
+
+export type Recipe = {
   id: string
   listing_id: string | null
   user_id: string
@@ -86,18 +97,7 @@ export interface Recipe {
   updated_at: string
 }
 
-export interface RecipeIngredient {
-  name: string
-  amount: string
-  unit: string
-}
-
-export interface RecipeStep {
-  step_number: number
-  instruction: string
-}
-
-export interface Exchange {
+export type Exchange = {
   id: string
   listing_id: string
   requester_id: string
@@ -112,7 +112,7 @@ export interface Exchange {
   updated_at: string
 }
 
-export interface Review {
+export type Review = {
   id: string
   exchange_id: string
   reviewer_id: string
@@ -126,7 +126,7 @@ export interface Review {
   created_at: string
 }
 
-export interface Report {
+export type Report = {
   id: string
   listing_id: string
   reporter_id: string
@@ -135,7 +135,7 @@ export interface Report {
   created_at: string
 }
 
-export interface Message {
+export type Message = {
   id: string
   conversation_id: string
   sender_id: string
@@ -144,9 +144,28 @@ export interface Message {
   created_at: string
 }
 
-export interface SavedListing {
+export type SavedListing = {
   user_id: string
   listing_id: string
+  created_at: string
+}
+
+export type Moment = {
+  id: string
+  user_id: string
+  caption: string | null
+  photo_urls: string[]
+  tags: string[]
+  lat: number | null
+  lng: number | null
+  like_count: number
+  comment_count: number
+  created_at: string
+}
+
+export type MomentLike = {
+  moment_id: string
+  user_id: string
   created_at: string
 }
 
@@ -167,11 +186,11 @@ export type MessageInsert = Pick<Message, 'conversation_id' | 'sender_id' | 'bod
 
 // ---- Joined / enriched types (for UI) ----
 
-export interface ListingWithCook extends Listing {
+export type ListingWithCook = Listing & {
   users: Pick<User, 'id' | 'name' | 'avatar_url' | 'rating_avg' | 'review_count' | 'top_cook_badge' | 'city'>
 }
 
-export interface ExchangeWithDetails extends Exchange {
+export type ExchangeWithDetails = Exchange & {
   listings: Pick<Listing, 'id' | 'title' | 'cuisine_tag' | 'photo_urls' | 'price_cents' | 'pickup_start' | 'pickup_end'>
   requester: Pick<User, 'id' | 'name' | 'avatar_url'>
   provider: Pick<User, 'id' | 'name' | 'avatar_url'>
@@ -179,18 +198,39 @@ export interface ExchangeWithDetails extends Exchange {
 
 // ---- Supabase Database type (for createClient generic) ----
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
-      users: { Row: User; Insert: UserInsert; Update: Partial<UserInsert> }
-      listings: { Row: Listing; Insert: ListingInsert; Update: Partial<ListingInsert> }
-      recipes: { Row: Recipe; Insert: Omit<Recipe, 'id' | 'created_at' | 'updated_at'>; Update: Partial<Recipe> }
-      exchanges: { Row: Exchange; Insert: ExchangeInsert; Update: Partial<ExchangeInsert> }
-      reviews: { Row: Review; Insert: ReviewInsert; Update: never }
-      reports: { Row: Report; Insert: Omit<Report, 'id' | 'created_at'>; Update: never }
-      messages: { Row: Message; Insert: MessageInsert; Update: Partial<Pick<Message, 'is_read'>> }
-      saved_listings: { Row: SavedListing; Insert: Omit<SavedListing, 'created_at'>; Update: never }
-      follows: { Row: Follow; Insert: Omit<Follow, 'created_at'>; Update: never }
+      users: { Row: User; Insert: UserInsert; Update: Partial<Omit<User, 'id'>>; Relationships: [] }
+      listings: {
+        Row: Listing; Insert: ListingInsert; Update: Partial<ListingInsert>
+        Relationships: [
+          { foreignKeyName: "listings_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }
+        ]
+      }
+      recipes: { Row: Recipe; Insert: Omit<Recipe, 'id' | 'created_at' | 'updated_at'>; Update: Partial<Recipe>; Relationships: [] }
+      exchanges: { Row: Exchange; Insert: ExchangeInsert; Update: Partial<ExchangeInsert>; Relationships: [] }
+      reviews: {
+        Row: Review; Insert: ReviewInsert; Update: Partial<Review>
+        Relationships: [
+          { foreignKeyName: "reviews_reviewer_id_fkey"; columns: ["reviewer_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] },
+          { foreignKeyName: "reviews_reviewee_id_fkey"; columns: ["reviewee_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }
+        ]
+      }
+      reports: { Row: Report; Insert: Omit<Report, 'id' | 'created_at'>; Update: Partial<Report>; Relationships: [] }
+      messages: { Row: Message; Insert: MessageInsert; Update: Partial<Pick<Message, 'is_read'>>; Relationships: [] }
+      saved_listings: { Row: SavedListing; Insert: Omit<SavedListing, 'created_at'>; Update: Partial<SavedListing>; Relationships: [] }
+      follows: {
+        Row: Follow; Insert: Omit<Follow, 'created_at'>; Update: Partial<Follow>
+        Relationships: [
+          { foreignKeyName: "follows_follower_id_fkey"; columns: ["follower_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] },
+          { foreignKeyName: "follows_following_id_fkey"; columns: ["following_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] }
+        ]
+      }
+      moments: { Row: Moment; Insert: Omit<Moment, 'id' | 'like_count' | 'comment_count' | 'created_at'>; Update: Partial<Moment>; Relationships: [] }
+      moment_likes: { Row: MomentLike; Insert: Omit<MomentLike, 'created_at'>; Update: Partial<MomentLike>; Relationships: [] }
     }
+    Views: Record<string, never>
+    Functions: Record<string, never>
   }
 }

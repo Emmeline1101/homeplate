@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import FollowButton from '../../components/FollowButton';
 import EditProfileModal from './EditProfileModal';
+import ProfileCover from './ProfileCover';
 import { createClient } from '../../lib/supabaseServer';
 import { CUISINE_GRADIENTS } from '../../lib/mock';
 
@@ -45,8 +46,6 @@ function formatPrice(cents: number) {
   return cents === 0 ? 'Free' : `$${(cents / 100).toFixed(2)}`;
 }
 
-const NOISE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E")`;
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function ProfilePage({
@@ -85,8 +84,9 @@ export default async function ProfilePage({
       .single();
     if (fallbackError) console.error('[profile] fallback error:', JSON.stringify(fallbackError));
     if (!fallback) notFound();
-    profile = { follower_count: 0, following_count: 0, ...fallback } as typeof profile;
+    profile = { follower_count: 0, following_count: 0, ...fallback } as typeof profile & {};
   }
+  if (!profile) notFound();
 
   // Fetch follow status (only needed when viewing another user's profile)
   let isFollowing = false;
@@ -154,50 +154,21 @@ export default async function ProfilePage({
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#f7f4ef' }}>
       <Navbar />
 
-      {/* ── Cover ── */}
-      <div className="relative w-full overflow-hidden" style={{ height: 160 }}>
-        {('cover_url' in profile && (profile as { cover_url: string | null }).cover_url) ? (
-          <img
-            src={(profile as { cover_url: string }).cover_url}
-            alt="Cover"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ) : (
-          <div
-            className="absolute inset-0"
-            style={{ background: `linear-gradient(150deg, ${coverFrom} 0%, ${coverTo} 100%)` }}
-          />
-        )}
-        <div
-          className="absolute inset-0 mix-blend-overlay opacity-25"
-          style={{ backgroundImage: NOISE, backgroundSize: '180px' }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{ background: 'radial-gradient(ellipse at 50% 0%, transparent 30%, rgba(0,0,0,0.2) 100%)' }}
-        />
-        <div
-          className="absolute bottom-0 left-0 right-0 h-16"
-          style={{ background: 'linear-gradient(to top, #f7f4ef, transparent)' }}
-        />
-      </div>
+      {/* ── Cover with parallax + avatar ── */}
+      <ProfileCover
+        coverUrl={('cover_url' in profile ? (profile as { cover_url: string | null }).cover_url : null)}
+        coverFrom={coverFrom}
+        coverTo={coverTo}
+        avatarUrl={profile.avatar_url}
+        name={profile.name}
+      />
 
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 -mt-12 pb-20 md:pb-8 space-y-3">
+      <main className="flex-1 w-full max-w-2xl mx-auto px-4 pb-20 md:pb-8 space-y-3" style={{ marginTop: 52 }}>
 
         {/* ── Profile header card ── */}
         <div className="bg-white rounded-3xl border border-black/[0.05] shadow-sm overflow-hidden">
-          <div className="px-5 pb-6 pt-3">
-            <div className="flex items-end justify-between mb-4">
-              <div
-                className="w-20 h-20 rounded-2xl border-4 border-white shadow-md overflow-hidden flex items-center justify-center text-3xl font-bold text-white shrink-0"
-                style={{ background: `linear-gradient(135deg, ${coverFrom}, ${coverTo})` }}
-              >
-                {profile.avatar_url ? (
-                  <img src={profile.avatar_url} alt={profile.name ?? ''} className="w-full h-full object-cover" />
-                ) : (
-                  profile.name?.[0] ?? '?'
-                )}
-              </div>
+          <div className="px-5 pb-6 pt-14">
+            <div className="flex items-start justify-end mb-4">
               {isOwnProfile ? (
                 <EditProfileModal
                   profile={{

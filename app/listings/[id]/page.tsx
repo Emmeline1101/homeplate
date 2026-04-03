@@ -6,6 +6,14 @@ import MessageSellerButton from '../../components/MessageSellerButton';
 import CartIcon from '../../components/CartIcon';
 import { CUISINE_GRADIENTS } from '../../lib/mock';
 import { createClient } from '../../lib/supabaseServer';
+import type { Listing, Recipe } from '../../lib/database.types';
+
+type ListingWithCook = Listing & {
+  cook: {
+    id: string; name: string | null; avatar_url: string | null;
+    rating_avg: number; review_count: number; top_cook_badge: boolean; city: string | null;
+  } | null;
+};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,26 +66,20 @@ export default async function ListingDetailPage({
   // Fetch listing + cook info
   const { data: listing } = await supabase
     .from('listings')
-    .select(`
-      *,
-      cook:user_id(id, name, avatar_url, rating_avg, review_count, top_cook_badge, city)
-    `)
+    .select(`*, cook:user_id(id, name, avatar_url, rating_avg, review_count, top_cook_badge, city)`)
     .eq('id', id)
-    .single();
+    .single() as { data: ListingWithCook | null; error: unknown };
 
   if (!listing) notFound();
 
-  const cook = listing.cook as {
-    id: string; name: string | null; avatar_url: string | null;
-    rating_avg: number; review_count: number; top_cook_badge: boolean; city: string | null;
-  } | null;
+  const cook = listing.cook;
 
   // Fetch recipe for this listing
   const { data: recipe } = await supabase
     .from('recipes')
     .select('*')
     .eq('listing_id', id)
-    .maybeSingle();
+    .maybeSingle() as { data: Recipe | null; error: unknown };
 
   // Fetch recent reviews for the cook
   const { data: reviews } = cook?.id

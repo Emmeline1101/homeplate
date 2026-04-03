@@ -8,7 +8,10 @@ export async function followUser(targetId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  await supabase.from('follows').insert({ follower_id: user.id, following_id: targetId })
+  await supabase
+    .from('follows')
+    .insert({ follower_id: user.id, following_id: targetId })
+
   revalidatePath(`/profile/${targetId}`)
   revalidatePath(`/profile/me`)
 }
