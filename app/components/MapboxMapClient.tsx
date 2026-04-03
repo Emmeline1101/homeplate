@@ -4,18 +4,18 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
 const PINS = [
-  { id: '1',  title: 'Kung Pao Chicken',        cuisine: 'Chinese'   },
-  { id: '2',  title: 'Tacos al Pastor',          cuisine: 'Mexican'   },
-  { id: '3',  title: 'Homemade Lasagna',         cuisine: 'Italian'   },
-  { id: '4',  title: 'Tonkotsu Ramen',           cuisine: 'Japanese'  },
-  { id: '5',  title: 'Butter Chicken',           cuisine: 'Indian'    },
-  { id: '6',  title: 'BBQ Brisket',              cuisine: 'American'  },
-  { id: '7',  title: 'Phở Bò',                   cuisine: 'Vietnamese'},
-  { id: '8',  title: 'Green Curry',              cuisine: 'Thai'      },
-  { id: '9',  title: 'Kimchi Jjigae',            cuisine: 'Korean'    },
-  { id: '10', title: 'Doro Wat',                 cuisine: 'Ethiopian' },
-  { id: '11', title: 'Spanakopita',              cuisine: 'Greek'     },
-  { id: '12', title: 'Lamb Kofta',               cuisine: 'Lebanese'  },
+  { id: '00000000-0000-4001-8000-000000000001', title: 'Sourdough Starter Bread',  category: 'Baked Goods',        cook: 'Mei L.',    price: 450  },
+  { id: '00000000-0000-4001-8000-000000000002', title: 'Horchata Rice Cookies',    category: 'Cookies & Biscuits', cook: 'Carlos R.', price: 500  },
+  { id: '00000000-0000-4001-8000-000000000003', title: 'Rosemary Olive Focaccia',  category: 'Baked Goods',        cook: 'Sofia M.',  price: 800  },
+  { id: '00000000-0000-4001-8000-000000000004', title: 'Miso Caramel Granola',     category: 'Dried & Packaged',   cook: 'Kenji T.',  price: 750  },
+  { id: '00000000-0000-4001-8000-000000000005', title: 'Cardamom Honey Cake',      category: 'Baked Goods',        cook: 'Priya S.',  price: 650  },
+  { id: '00000000-0000-4001-8000-000000000006', title: 'Peach Jalapeño Jam',       category: 'Jams & Preserves',   cook: 'Jake W.',   price: 0    },
+  { id: '00000000-0000-4001-8000-000000000007', title: 'Vegan Kimchi',             category: 'Fermented',          cook: 'Linh N.',   price: 0    },
+  { id: '00000000-0000-4001-8000-000000000008', title: 'Mango Coconut Mochi',      category: 'Asian Sweets',       cook: 'Nong P.',   price: 599  },
+  { id: '00000000-0000-4001-8000-000000000009', title: 'Sesame Peanut Brittle',    category: 'Confections',        cook: 'Jisu K.',   price: 0    },
+  { id: '00000000-0000-4001-8000-000000000010', title: 'Berbere Spice Blend',      category: 'Dried & Packaged',   cook: 'Hana G.',   price: 800  },
+  { id: '00000000-0000-4001-8000-000000000011', title: 'Baklava Rolls',            category: 'Confections',        cook: 'Elena V.',  price: 499  },
+  { id: '00000000-0000-4001-8000-000000000012', title: 'Mamoul Date Cookies',      category: 'Cookies & Biscuits', cook: 'Omar F.',   price: 750  },
 ];
 
 const MapboxMap = dynamic(() => import('./MapboxMap'), {
@@ -50,6 +50,10 @@ function MapPlaceholder() {
           >
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
             {p.title}
+            <span className="text-gray-400">·</span>
+            <span className={p.price === 0 ? 'text-green-400' : 'text-amber-300'}>
+              {p.price === 0 ? 'Free' : `$${(p.price / 100).toFixed(2)}`}
+            </span>
           </Link>
         ))}
       </div>

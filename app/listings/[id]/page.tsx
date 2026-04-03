@@ -91,11 +91,13 @@ export default async function ListingDetailPage({
         .limit(5)
     : { data: [] };
 
-  const cuisine     = listing.cuisine_tag ?? '';
+  const activeListing = listing;
+
+  const cuisine     = activeListing.cuisine_tag ?? '';
   const [gradFrom, gradTo] = CUISINE_GRADIENTS[cuisine] ?? ['#94a3b8', '#475569'];
-  const portionPct  = (listing.quantity_left / listing.quantity_total) * 100;
-  const isLow       = listing.quantity_left <= 2;
-  const isFree      = listing.price_cents === 0;
+  const portionPct  = (activeListing.quantity_left / activeListing.quantity_total) * 100;
+  const isLow       = activeListing.quantity_left <= 2;
+  const isFree      = activeListing.price_cents === 0;
   const cookName    = cook?.name ?? 'Unknown Cook';
   const cookRating  = cook?.rating_avg ?? 0;
   const cookReviews = cook?.review_count ?? 0;
@@ -149,7 +151,7 @@ export default async function ListingDetailPage({
               filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.45)) drop-shadow(0 2px 6px rgba(0,0,0,0.3))',
             }}
           >
-            {listing.emoji ?? '🍱'}
+            {activeListing.emoji ?? '🍱'}
           </span>
         </div>
 
@@ -164,7 +166,7 @@ export default async function ListingDetailPage({
           <div className="flex items-center gap-2">
             {isLow && (
               <span className="text-[11px] font-extrabold tracking-wide px-2.5 py-1 rounded-full bg-red-500 text-white shadow-md">
-                {listing.quantity_left} LEFT
+                {activeListing.quantity_left} LEFT
               </span>
             )}
             {cook?.top_cook_badge && (
@@ -200,13 +202,13 @@ export default async function ListingDetailPage({
         <div className="bg-white space-y-4 pt-2 pb-5 border-b border-gray-100">
           <div className="flex items-start justify-between gap-3">
             <h1 className="text-[22px] font-extrabold leading-tight tracking-tight" style={{ color: '#1a3a2a' }}>
-              {listing.title}
+              {activeListing.title}
             </h1>
             <span
               className="shrink-0 text-lg font-extrabold tabular-nums mt-0.5"
               style={{ color: isFree ? '#16a34a' : '#1a3a2a' }}
             >
-              {formatPrice(listing.price_cents)}
+              {formatPrice(activeListing.price_cents)}
             </span>
           </div>
 
@@ -244,15 +246,15 @@ export default async function ListingDetailPage({
           </div>
 
           {/* Description */}
-          {listing.description && (
-            <p className="text-sm text-gray-500 leading-relaxed">{listing.description}</p>
+          {activeListing.description && (
+            <p className="text-sm text-gray-500 leading-relaxed">{activeListing.description}</p>
           )}
 
           {/* Allergens */}
-          {listing.allergens && listing.allergens.length > 0 && (
+          {activeListing.allergens && activeListing.allergens.length > 0 && (
             <div className="flex flex-wrap gap-1.5 items-center">
               <span className="text-[11px] text-gray-400 font-medium">Allergens:</span>
-              {listing.allergens.map((a) => {
+              {activeListing.allergens.map((a) => {
                 const s = ALLERGEN_STYLE[a] ?? ALLERGEN_STYLE['none'];
                 return (
                   <span key={a} className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border capitalize"
@@ -274,7 +276,7 @@ export default async function ListingDetailPage({
               <span className={`font-semibold ${isLow ? 'text-red-500' : 'text-gray-700'}`}>
                 {isLow ? '⚡ Almost gone' : 'Portions available'}
               </span>
-              <span className="text-gray-400 tabular-nums">{listing.quantity_left} / {listing.quantity_total}</span>
+              <span className="text-gray-400 tabular-nums">{activeListing.quantity_left} / {activeListing.quantity_total}</span>
             </div>
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
@@ -288,14 +290,14 @@ export default async function ListingDetailPage({
             <div className="rounded-2xl p-4" style={{ backgroundColor: '#f7f4ef' }}>
               <p className="text-[11px] font-medium text-gray-400 mb-1">Price per portion</p>
               <p className="text-xl font-extrabold tabular-nums" style={{ color: isFree ? '#16a34a' : '#1a3a2a' }}>
-                {formatPrice(listing.price_cents)}
+                {formatPrice(activeListing.price_cents)}
               </p>
             </div>
             <div className="rounded-2xl p-4" style={{ backgroundColor: '#f7f4ef' }}>
               <p className="text-[11px] font-medium text-gray-400 mb-1">Pickup window</p>
               <p className="text-xs font-semibold text-gray-800 leading-snug">
-                {listing.pickup_start && listing.pickup_end
-                  ? formatPickup(listing.pickup_start, listing.pickup_end)
+                {activeListing.pickup_start && activeListing.pickup_end
+                  ? formatPickup(activeListing.pickup_start, activeListing.pickup_end)
                   : 'TBD'}
               </p>
             </div>
@@ -303,17 +305,17 @@ export default async function ListingDetailPage({
 
           <div className="hidden md:block space-y-2">
             <RequestExchangeButton item={{
-              listingId: listing.id,
-              title: listing.title,
+              listingId: activeListing.id,
+              title: activeListing.title,
               cuisine: cuisine,
               cook: cookName,
-              emoji: listing.emoji ?? '🍱',
-              price: listing.price_cents,
-              maxPortions: listing.quantity_left,
-              pickupStart: listing.pickup_start ?? '',
-              pickupEnd: listing.pickup_end ?? '',
+              emoji: activeListing.emoji ?? '🍱',
+              price: activeListing.price_cents,
+              maxPortions: activeListing.quantity_left,
+              pickupStart: activeListing.pickup_start ?? '',
+              pickupEnd: activeListing.pickup_end ?? '',
             }} />
-            <MessageSellerButton cookName={cookName} listingId={listing.id} />
+            <MessageSellerButton cookName={cookName} listingId={activeListing.id} />
           </div>
         </div>
 
@@ -445,7 +447,7 @@ export default async function ListingDetailPage({
           <div>
             <p className="text-[11px] text-gray-400">Price per portion</p>
             <p className="text-lg font-extrabold tabular-nums" style={{ color: isFree ? '#16a34a' : '#1a3a2a' }}>
-              {formatPrice(listing.price_cents)}
+              {formatPrice(activeListing.price_cents)}
             </p>
           </div>
           <div className="flex items-center gap-1">
@@ -454,17 +456,17 @@ export default async function ListingDetailPage({
           </div>
         </div>
         <RequestExchangeButton item={{
-          listingId: listing.id,
-          title: listing.title,
+          listingId: activeListing.id,
+          title: activeListing.title,
           cuisine: cuisine,
           cook: cookName,
-          emoji: listing.emoji ?? '🍱',
-          price: listing.price_cents,
-          maxPortions: listing.quantity_left,
-          pickupStart: listing.pickup_start ?? '',
-          pickupEnd: listing.pickup_end ?? '',
+          emoji: activeListing.emoji ?? '🍱',
+          price: activeListing.price_cents,
+          maxPortions: activeListing.quantity_left,
+          pickupStart: activeListing.pickup_start ?? '',
+          pickupEnd: activeListing.pickup_end ?? '',
         }} />
-        <MessageSellerButton cookName={cookName} listingId={listing.id} />
+        <MessageSellerButton cookName={cookName} listingId={activeListing.id} />
       </div>
     </div>
   );

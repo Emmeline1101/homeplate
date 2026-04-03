@@ -1,22 +1,23 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const PINS = [
-  { id: '1',  lat: 37.7749,  lng: -122.4194, title: 'Kung Pao Chicken',        cuisine: 'Chinese'   },
-  { id: '2',  lat: 34.0522,  lng: -118.2437, title: 'Tacos al Pastor',          cuisine: 'Mexican'   },
-  { id: '3',  lat: 40.7128,  lng: -74.0060,  title: 'Homemade Lasagna',         cuisine: 'Italian'   },
-  { id: '4',  lat: 47.6062,  lng: -122.3321, title: 'Tonkotsu Ramen',           cuisine: 'Japanese'  },
-  { id: '5',  lat: 41.8781,  lng: -87.6298,  title: 'Butter Chicken',           cuisine: 'Indian'    },
-  { id: '6',  lat: 29.7604,  lng: -95.3698,  title: 'BBQ Brisket',              cuisine: 'American'  },
-  { id: '7',  lat: 45.5051,  lng: -122.6750, title: 'Phở Bò',                   cuisine: 'Vietnamese'},
-  { id: '8',  lat: 25.7617,  lng: -80.1918,  title: 'Green Curry',              cuisine: 'Thai'      },
-  { id: '9',  lat: 47.6101,  lng: -122.2015, title: 'Kimchi Jjigae',            cuisine: 'Korean'    },
-  { id: '10', lat: 38.9072,  lng: -77.0369,  title: 'Doro Wat',                 cuisine: 'Ethiopian' },
-  { id: '11', lat: 41.8500,  lng: -87.6500,  title: 'Spanakopita',              cuisine: 'Greek'     },
-  { id: '12', lat: 25.7800,  lng: -80.2100,  title: 'Lamb Kofta',               cuisine: 'Lebanese'  },
+  { id: '00000000-0000-4001-8000-000000000001', lat: 37.7749,  lng: -122.4194, title: 'Sourdough Starter Bread',  category: 'Baked Goods',        cook: 'Mei L.',    qty: 4, price: 450  },
+  { id: '00000000-0000-4001-8000-000000000002', lat: 34.0522,  lng: -118.2437, title: 'Horchata Rice Cookies',    category: 'Cookies & Biscuits', cook: 'Carlos R.', qty: 8, price: 500  },
+  { id: '00000000-0000-4001-8000-000000000003', lat: 40.7128,  lng: -74.0060,  title: 'Rosemary Olive Focaccia', category: 'Baked Goods',        cook: 'Sofia M.',  qty: 2, price: 800  },
+  { id: '00000000-0000-4001-8000-000000000004', lat: 47.6062,  lng: -122.3321, title: 'Miso Caramel Granola',    category: 'Dried & Packaged',   cook: 'Kenji T.',  qty: 5, price: 750  },
+  { id: '00000000-0000-4001-8000-000000000005', lat: 41.8781,  lng: -87.6298,  title: 'Cardamom Honey Cake',     category: 'Baked Goods',        cook: 'Priya S.',  qty: 6, price: 650  },
+  { id: '00000000-0000-4001-8000-000000000006', lat: 29.7604,  lng: -95.3698,  title: 'Peach Jalapeño Jam',      category: 'Jams & Preserves',   cook: 'Jake W.',   qty: 3, price: 0    },
+  { id: '00000000-0000-4001-8000-000000000007', lat: 45.5051,  lng: -122.6750, title: 'Vegan Kimchi',            category: 'Fermented',          cook: 'Linh N.',   qty: 7, price: 0    },
+  { id: '00000000-0000-4001-8000-000000000008', lat: 25.7617,  lng: -80.1918,  title: 'Mango Coconut Mochi',     category: 'Asian Sweets',       cook: 'Nong P.',   qty: 4, price: 599  },
+  { id: '00000000-0000-4001-8000-000000000009', lat: 47.6101,  lng: -122.2015, title: 'Sesame Peanut Brittle',   category: 'Confections',        cook: 'Jisu K.',   qty: 5, price: 0    },
+  { id: '00000000-0000-4001-8000-000000000010', lat: 38.9072,  lng: -77.0369,  title: 'Berbere Spice Blend',     category: 'Dried & Packaged',   cook: 'Hana G.',   qty: 2, price: 800  },
+  { id: '00000000-0000-4001-8000-000000000011', lat: 41.8500,  lng: -87.6500,  title: 'Baklava Rolls',           category: 'Confections',        cook: 'Elena V.',  qty: 9, price: 499  },
+  { id: '00000000-0000-4001-8000-000000000012', lat: 25.7800,  lng: -80.2100,  title: 'Mamoul Date Cookies',     category: 'Cookies & Biscuits', cook: 'Omar F.',   qty: 3, price: 750  },
 ];
 
 const FORK_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
@@ -30,14 +31,16 @@ export default function MapboxMap() {
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [locating, setLocating] = useState(false);
   const [locError, setLocError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    const container = containerRef.current;
 
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
 
     const map = new mapboxgl.Map({
-      container: containerRef.current,
+      container,
       style: 'mapbox://styles/mapbox/dark-v11',
       center: [-98.5795, 39.8283],
       zoom: 3.5,
@@ -47,7 +50,7 @@ export default function MapboxMap() {
 
     // Auto-resize map whenever its container changes size (drag resize, fullscreen, etc.)
     const ro = new ResizeObserver(() => { map.resize(); });
-    ro.observe(containerRef.current);
+    ro.observe(container);
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
 
     // Built-in geolocation control (blue dot + heading arc)
@@ -59,6 +62,18 @@ export default function MapboxMap() {
     });
     map.addControl(geoCtrl, 'top-right');
     geoCtrlRef.current = geoCtrl;
+
+    // Intercept "View Listing" anchor clicks inside popups — use Next.js router
+    // so navigation is client-side and the router cache can restore the page on back
+    const handleNavClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest('a[data-internal]') as HTMLAnchorElement | null;
+      if (a) {
+        e.preventDefault();
+        const href = a.getAttribute('href');
+        if (href) router.push(href);
+      }
+    };
+    container.addEventListener('click', handleNavClick);
 
     map.on('load', () => {
       PINS.forEach((pin) => {
@@ -81,22 +96,44 @@ export default function MapboxMap() {
         el.addEventListener('mouseenter', () => { inner.style.transform = 'scale(1.2)'; });
         el.addEventListener('mouseleave', () => { inner.style.transform = 'scale(1)'; });
 
-        new mapboxgl.Marker({ element: el })
+        const priceLabel = pin.price === 0
+          ? '<span style="color:#16a34a;font-weight:700">Free</span>'
+          : `<span style="font-weight:700;color:#1a3a2a">$${(pin.price / 100).toFixed(2)}</span>`;
+
+        const marker = new mapboxgl.Marker({ element: el })
           .setLngLat([pin.lng, pin.lat])
           .setPopup(
-            new mapboxgl.Popup({ offset: 20, closeButton: false, maxWidth: '180px' })
+            new mapboxgl.Popup({ offset: 20, closeButton: false, maxWidth: '220px' })
               .setHTML(
-                `<div style="font-family:Inter,sans-serif;padding:4px 2px">
-                   <div style="font-weight:600;font-size:13px;color:#1a3a2a">${pin.title}</div>
-                   <div style="font-size:11px;color:#6b7280;margin-top:2px">${pin.cuisine}</div>
+                `<div style="font-family:Inter,sans-serif;padding:6px 4px">
+                   <div style="font-weight:700;font-size:14px;color:#111827;line-height:1.3">${pin.title}</div>
+                   <div style="font-size:11px;color:#6b7280;margin-top:3px">${pin.category} · by ${pin.cook}</div>
+                   <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+                     <div style="font-size:12px;color:#4b5563">${pin.qty} left</div>
+                     <div style="font-size:13px">${priceLabel}</div>
+                   </div>
+                   <a href="/listings/${pin.id}" data-internal="true" style="
+                     display:block;margin-top:8px;text-align:center;
+                     background:#1a3a2a;color:white;font-size:12px;font-weight:600;
+                     padding:5px 0;border-radius:6px;text-decoration:none;
+                   ">View Listing →</a>
                  </div>`
               )
           )
           .addTo(map);
+
+        el.addEventListener('click', () => { marker.togglePopup(); });
       });
     });
 
-    return () => { ro.disconnect(); map.remove(); mapRef.current = null; userMarkerRef.current = null; };
+    return () => {
+      container.removeEventListener('click', handleNavClick);
+      ro.disconnect();
+      map.remove();
+      mapRef.current = null;
+      userMarkerRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleLocateMe() {
