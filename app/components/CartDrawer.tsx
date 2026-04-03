@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCart, CartItem } from '../lib/cartStore';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -118,6 +119,7 @@ function ItemRow({ item }: { item: CartItem }) {
 
 export default function CartDrawer() {
   const { items, totalItems, totalPrice, drawerOpen, closeDrawer, clear } = useCart();
+  const router = useRouter();
   const [showSafety, setShowSafety] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -217,11 +219,18 @@ export default function CartDrawer() {
             {/* Actions */}
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => setShowSafety(true)}
+                onClick={() => {
+                  if (totalPrice > 0) {
+                    closeDrawer();
+                    router.push('/checkout');
+                  } else {
+                    setShowSafety(true);
+                  }
+                }}
                 className="w-full rounded-xl py-3 text-sm font-bold text-white transition-colors hover:opacity-90"
                 style={{ backgroundColor: '#1a3a2a' }}
               >
-                Confirm Exchange
+                {totalPrice > 0 ? 'Proceed to Checkout' : 'Confirm Exchange'}
               </button>
               <Link
                 href="/cart"

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import BackButton from '../components/BackButton';
 import { useCart, CartItem } from '../lib/cartStore';
@@ -138,6 +139,7 @@ function ItemCard({ item }: { item: CartItem }) {
 
 export default function CartPage() {
   const { items, totalItems, totalPrice, clear } = useCart();
+  const router = useRouter();
   const [sortMode, setSortMode] = useState<SortMode>('pickup');
   const [showModal, setShowModal] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -265,11 +267,11 @@ export default function CartPage() {
               </div>
 
               <button
-                onClick={() => setShowModal(true)}
+                onClick={() => totalPrice > 0 ? router.push('/checkout') : setShowModal(true)}
                 className="w-full rounded-xl py-3.5 text-sm font-bold text-white transition-colors hover:opacity-90"
                 style={{ backgroundColor: '#1a3a2a' }}
               >
-                Confirm Exchange
+                {totalPrice > 0 ? `Proceed to Checkout · ${fmt(totalPrice)}` : 'Confirm Exchange'}
               </button>
             </div>
           </div>
