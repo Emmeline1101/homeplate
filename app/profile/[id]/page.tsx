@@ -4,6 +4,7 @@ import Navbar from '../../components/Navbar';
 import FollowButton from '../../components/FollowButton';
 import EditProfileModal from './EditProfileModal';
 import ProfileCover from './ProfileCover';
+import ProfileOrders from './ProfileOrders';
 import { createClient } from '../../lib/supabaseServer';
 import { CUISINE_GRADIENTS } from '../../lib/mock';
 
@@ -271,6 +272,9 @@ export default async function ProfilePage({
             </div>
           ))}
         </div>
+
+        {/* ── Orders (own profile only) ── */}
+        {isOwnProfile && <ProfileOrders />}
 
         {/* ── Listings ── */}
         <div className="bg-white rounded-3xl border border-black/[0.05] shadow-sm p-5 space-y-4">

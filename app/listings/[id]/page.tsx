@@ -96,7 +96,8 @@ export default async function ListingDetailPage({
   const cuisine     = activeListing.cuisine_tag ?? '';
   const [gradFrom, gradTo] = CUISINE_GRADIENTS[cuisine] ?? ['#94a3b8', '#475569'];
   const portionPct  = (activeListing.quantity_left / activeListing.quantity_total) * 100;
-  const isLow       = activeListing.quantity_left <= 2;
+  const isSoldOut   = activeListing.quantity_left === 0 || activeListing.status === 'sold_out';
+  const isLow       = !isSoldOut && activeListing.quantity_left <= 2;
   const isFree      = activeListing.price_cents === 0;
   const cookName    = cook?.name ?? 'Unknown Cook';
   const cookRating  = cook?.rating_avg ?? 0;
@@ -164,7 +165,11 @@ export default async function ListingDetailPage({
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 md:pt-4">
           <BackButton fallback="/" />
           <div className="flex items-center gap-2">
-            {isLow && (
+            {isSoldOut ? (
+              <span className="text-[11px] font-extrabold tracking-wide px-2.5 py-1 rounded-full bg-gray-700 text-white shadow-md">
+                SOLD OUT
+              </span>
+            ) : isLow && (
               <span className="text-[11px] font-extrabold tracking-wide px-2.5 py-1 rounded-full bg-red-500 text-white shadow-md">
                 {activeListing.quantity_left} LEFT
               </span>
@@ -273,8 +278,8 @@ export default async function ListingDetailPage({
 
           <div>
             <div className="flex justify-between text-sm mb-2">
-              <span className={`font-semibold ${isLow ? 'text-red-500' : 'text-gray-700'}`}>
-                {isLow ? '⚡ Almost gone' : 'Portions available'}
+              <span className={`font-semibold ${isSoldOut ? 'text-gray-400' : isLow ? 'text-red-500' : 'text-gray-700'}`}>
+                {isSoldOut ? 'No portions left' : isLow ? '⚡ Almost gone' : 'Portions available'}
               </span>
               <span className="text-gray-400 tabular-nums">{activeListing.quantity_left} / {activeListing.quantity_total}</span>
             </div>
@@ -314,7 +319,7 @@ export default async function ListingDetailPage({
               maxPortions: activeListing.quantity_left,
               pickupStart: activeListing.pickup_start ?? '',
               pickupEnd: activeListing.pickup_end ?? '',
-            }} />
+            }} disabled={isSoldOut} />
             <MessageSellerButton cookName={cookName} listingId={activeListing.id} />
           </div>
         </div>

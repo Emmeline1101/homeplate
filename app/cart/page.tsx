@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import BackButton from '../components/BackButton';
-import { useCart, CartItem } from '../lib/cartStore';
+import { useCart, type CartItem } from '../lib/cartStore';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -34,44 +34,6 @@ function sortItems(items: CartItem[], mode: SortMode): CartItem[] {
     case 'cuisine':
       return copy.sort((a, b) => a.cuisine.localeCompare(b.cuisine));
   }
-}
-
-// ── Safety Modal ──────────────────────────────────────────────────────────────
-
-function SafetyModal({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 space-y-4">
-        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-50 mx-auto">
-          <svg className="w-6 h-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 3h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-          </svg>
-        </div>
-        <div className="text-center space-y-1.5">
-          <h2 className="text-base font-bold text-gray-900">Safety Confirmation</h2>
-          <p className="text-sm text-gray-500 leading-relaxed">
-            I confirm this food was prepared in a clean environment and all allergens are accurately disclosed.
-          </p>
-        </div>
-        <div className="flex gap-3 pt-1">
-          <button
-            onClick={onCancel}
-            className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
-            style={{ backgroundColor: '#1a3a2a' }}
-          >
-            Confirm Exchange
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ── Item Card ─────────────────────────────────────────────────────────────────
@@ -138,11 +100,9 @@ function ItemCard({ item }: { item: CartItem }) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CartPage() {
-  const { items, totalItems, totalPrice, clear } = useCart();
+  const { items, totalItems, totalPrice } = useCart();
   const router = useRouter();
   const [sortMode, setSortMode] = useState<SortMode>('pickup');
-  const [showModal, setShowModal] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
 
   const sorted = sortItems(items, sortMode);
   const freeCount = items.filter(i => i.price === 0).length;
@@ -154,12 +114,6 @@ export default function CartPage() {
     { value: 'price-desc', label: 'Price: High → Low' },
     { value: 'cuisine',    label: 'Cuisine' },
   ];
-
-  function handleConfirm() {
-    setShowModal(false);
-    setConfirmed(true);
-    clear();
-  }
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#faf7f2' }}>
@@ -180,23 +134,7 @@ export default function CartPage() {
           )}
         </h1>
 
-        {/* Confirmed state */}
-        {confirmed ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex flex-col items-center gap-4 text-center">
-            <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center text-4xl">✅</div>
-            <div>
-              <p className="text-xl font-bold text-gray-900">Exchange Confirmed!</p>
-              <p className="text-sm text-gray-400 mt-2">You&apos;ll hear from your cooks soon.</p>
-            </div>
-            <Link
-              href="/"
-              className="mt-4 px-6 py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-colors"
-              style={{ backgroundColor: '#1a3a2a' }}
-            >
-              Browse More Dishes
-            </Link>
-          </div>
-        ) : items.length === 0 ? (
+        {items.length === 0 ? (
           /* Empty state */
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex flex-col items-center gap-4 text-center">
             <div className="text-6xl">🛒</div>
@@ -267,7 +205,7 @@ export default function CartPage() {
               </div>
 
               <button
-                onClick={() => totalPrice > 0 ? router.push('/checkout') : setShowModal(true)}
+                onClick={() => router.push('/checkout')}
                 className="w-full rounded-xl py-3.5 text-sm font-bold text-white transition-colors hover:opacity-90"
                 style={{ backgroundColor: '#1a3a2a' }}
               >
@@ -277,13 +215,6 @@ export default function CartPage() {
           </div>
         )}
       </main>
-
-      {showModal && (
-        <SafetyModal
-          onCancel={() => setShowModal(false)}
-          onConfirm={handleConfirm}
-        />
-      )}
     </div>
   );
 }

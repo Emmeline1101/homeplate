@@ -11,6 +11,8 @@ import {
   useElements,
 } from '@stripe/react-stripe-js';
 import { useCart, type CartItem } from '../lib/cartStore';
+import { useOrders, type Order } from '../lib/ordersStore';
+import { confirmExchange } from '../actions/confirmExchange';
 import Navbar from '../components/Navbar';
 import BackButton from '../components/BackButton';
 
@@ -133,23 +135,102 @@ function StripeForm({ onSuccess }: { onSuccess: () => void }) {
 
 // PayPal support removed — only Stripe is used for payments now.
 
-// ── Confirmed State ───────────────────────────────────────────────────────────
+// ── Success Modal ─────────────────────────────────────────────────────────────
 
-function ConfirmedView() {
+function SuccessModal({ order, onClose }: { order: Order; onClose: () => void }) {
+  const freeCount = order.items.filter(i => i.price === 0).length;
+  const paidCount = order.items.filter(i => i.price > 0).length;
+
+  // Earliest pickup across all items
+  const earliestPickup = order.items.reduce<Date | null>((earliest, item) => {
+    const d = new Date(item.pickupStart);
+    return !earliest || d < earliest ? d : earliest;
+  }, null);
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex flex-col items-center gap-4 text-center">
-      <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center text-4xl">✅</div>
-      <div>
-        <p className="text-xl font-bold text-gray-900">Payment Confirmed!</p>
-        <p className="text-sm text-gray-400 mt-2">You&apos;ll hear from your cooks soon about pickup details.</p>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+
+      <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+        {/* Green header band */}
+        <div className="bg-gradient-to-br from-[#1a3a2a] to-[#2d6a4f] px-6 pt-8 pb-10 text-center relative overflow-hidden">
+          {/* decorative circles */}
+          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/5" />
+          <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/5" />
+
+          <div className="relative w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-4xl mx-auto mb-4 shadow-lg">
+            🎉
+          </div>
+          <h2 className="text-2xl font-extrabold text-white mb-1">
+            {order.total === 0 ? 'Exchange Confirmed!' : 'Payment Successful!'}
+          </h2>
+          <p className="text-sm text-white/70">
+            {order.total === 0
+              ? 'Your free exchange is all set.'
+              : `$${(order.total / 100).toFixed(2)} paid · exchange confirmed`}
+          </p>
+        </div>
+
+        {/* Items list */}
+        <div className="px-6 pt-5 pb-2 space-y-2">
+          <p className="text-xs font-bold tracking-wider text-gray-400 uppercase">Your order</p>
+          <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+            {order.items.map(item => (
+              <div key={item.listingId} className="flex items-center gap-3">
+                <span className="text-2xl shrink-0">{item.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">{item.title}</p>
+                  <p className="text-xs text-gray-400">{item.cook} · ×{item.quantity}</p>
+                </div>
+                <span className="text-sm font-bold shrink-0" style={{ color: item.price === 0 ? '#16a34a' : '#1a3a2a' }}>
+                  {item.price === 0 ? 'Free' : `$${((item.price * item.quantity) / 100).toFixed(2)}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Pickup info */}
+        {earliestPickup && (
+          <div className="mx-6 my-3 rounded-2xl bg-amber-50 border border-amber-100 px-4 py-3 flex items-start gap-3">
+            <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-xs font-bold text-amber-800">Pickup starts</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                {earliestPickup.toLocaleString('en-US', {
+                  weekday: 'short', month: 'short', day: 'numeric',
+                  hour: 'numeric', minute: '2-digit',
+                })}
+              </p>
+              <p className="text-xs text-amber-600 mt-0.5">
+                {freeCount > 0 && paidCount === 0 && 'Coordinate pickup directly with your cook.'}
+                {paidCount > 0 && "You'll hear from your cook about exact pickup location."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* CTAs */}
+        <div className="px-6 pb-6 pt-2 flex flex-col gap-2">
+          <Link
+            href="/profile/me"
+            onClick={onClose}
+            className="w-full rounded-xl py-3 text-sm font-bold text-white text-center hover:opacity-90 transition-colors"
+            style={{ backgroundColor: '#1a3a2a' }}
+          >
+            View My Orders
+          </Link>
+          <Link
+            href="/"
+            onClick={onClose}
+            className="w-full rounded-xl py-3 text-sm font-semibold text-gray-600 text-center hover:bg-gray-50 transition-colors border border-gray-200"
+          >
+            Browse More Dishes
+          </Link>
+        </div>
       </div>
-      <Link
-        href="/"
-        className="mt-4 px-6 py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-colors"
-        style={{ backgroundColor: '#1a3a2a' }}
-      >
-        Browse More Dishes
-      </Link>
     </div>
   );
 }
@@ -190,12 +271,13 @@ function SafetyModal({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
 type PayMethod = 'card';
 
 export default function CheckoutPage() {
-  const { items, totalPrice, clear } = useCart();
+  const { items, totalPrice, hydrated, clear } = useCart();
+  const { addOrder } = useOrders();
   const router  = useRouter();
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [payMethod,    setPayMethod]    = useState<PayMethod>('card');
-  const [confirmed,    setConfirmed]    = useState(false);
+  const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
   const [showSafety,   setShowSafety]   = useState(false);
   const [loadingPI,    setLoadingPI]    = useState(false);
 
@@ -218,12 +300,13 @@ export default function CheckoutPage() {
     }
   }, [hasPaidItems, totalPrice]);
 
+  // Wait for cart hydration before redirecting — avoids false-empty on first render
   useEffect(() => {
-    // Check for Stripe redirect return (?success=1)
+    if (!hydrated) return;
+
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === '1') {
       clear();
-      setConfirmed(true);
       return;
     }
 
@@ -234,17 +317,46 @@ export default function CheckoutPage() {
 
     fetchIntent();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hydrated]);
 
-  function handleFreeConfirm() {
-    setShowSafety(false);
-    clear();
-    setConfirmed(true);
+  function buildOrder(cartItems: CartItem[]): Order {
+    return {
+      id: crypto.randomUUID(),
+      items: cartItems.map(i => ({
+        listingId: i.listingId,
+        title: i.title,
+        cuisine: i.cuisine,
+        cook: i.cook,
+        emoji: i.emoji,
+        price: i.price,
+        quantity: i.quantity,
+        pickupStart: i.pickupStart,
+        pickupEnd: i.pickupEnd,
+      })),
+      total: cartItems.reduce((s, i) => s + i.price * i.quantity, 0),
+      placedAt: new Date().toISOString(),
+      pickupStatus: 'pending',
+    };
   }
 
-  function handlePaymentSuccess() {
+  async function handleFreeConfirm() {
+    const snapshot = [...items];
+    const order = buildOrder(snapshot);
+    addOrder(order);
+    setShowSafety(false);
     clear();
-    setConfirmed(true);
+    setConfirmedOrder(order);
+    // Decrement quantity_left in DB (fire-and-forget, non-blocking)
+    confirmExchange(snapshot.map(i => ({ listingId: i.listingId, quantity: i.quantity })));
+  }
+
+  async function handlePaymentSuccess() {
+    const snapshot = [...items];
+    const order = buildOrder(snapshot);
+    addOrder(order);
+    clear();
+    setConfirmedOrder(order);
+    confirmExchange(snapshot.map(i => ({ listingId: i.listingId, quantity: i.quantity })));
   }
 
   // Re-fetch PaymentIntent when switching back to card (so secret is fresh)
@@ -252,7 +364,6 @@ export default function CheckoutPage() {
     setPayMethod(m);
     if (m === 'card' && !clientSecret) fetchIntent();
   }
-
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#faf7f2' }}>
@@ -265,9 +376,15 @@ export default function CheckoutPage() {
 
         <h1 className="text-2xl font-bold" style={{ color: '#1a3a2a' }}>Checkout</h1>
 
-        {confirmed ? (
-          <ConfirmedView />
-        ) : (
+        {!hydrated ? (
+          <div className="flex items-center justify-center py-20 text-gray-400 text-sm gap-2">
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Loading…
+          </div>
+        ) : confirmedOrder ? null : (
           <>
             {/* Order summary */}
             <OrderSummary items={items} total={totalPrice} />
@@ -370,6 +487,13 @@ export default function CheckoutPage() {
         <SafetyModal
           onCancel={() => setShowSafety(false)}
           onConfirm={handleFreeConfirm}
+        />
+      )}
+
+      {confirmedOrder && (
+        <SuccessModal
+          order={confirmedOrder}
+          onClose={() => setConfirmedOrder(null)}
         />
       )}
     </div>

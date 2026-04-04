@@ -66,6 +66,7 @@ type CartCtx = {
   clear: () => void;
   totalItems: number;
   totalPrice: number;
+  hydrated: boolean;
   drawerOpen: boolean;
   openDrawer: () => void;
   closeDrawer: () => void;
@@ -77,6 +78,7 @@ const LS_KEY = 'homebites_cart_v1';
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, dispatch] = useReducer(reducer, []);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   // Hydrate from localStorage once on mount
   useEffect(() => {
@@ -84,12 +86,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(LS_KEY);
       if (raw) dispatch({ type: 'HYDRATE', items: JSON.parse(raw) as CartItem[] });
     } catch { /* ignore */ }
+    setHydrated(true);
   }, []);
 
-  // Persist on every change
+  // Persist on every change (skip before hydration to avoid overwriting)
   useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem(LS_KEY, JSON.stringify(items));
-  }, [items]);
+  }, [items, hydrated]);
 
   return (
     <CartContext.Provider value={{
@@ -100,6 +104,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       clear:      ()         => dispatch({ type: 'CLEAR' }),
       totalItems: items.reduce((s, i) => s + i.quantity, 0),
       totalPrice: items.reduce((s, i) => s + i.price * i.quantity, 0),
+      hydrated,
       drawerOpen,
       openDrawer:  () => setDrawerOpen(true),
       closeDrawer: () => setDrawerOpen(false),

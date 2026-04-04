@@ -5,6 +5,7 @@ import { useCart, CartItem } from '../lib/cartStore';
 
 type Props = {
   item: Omit<CartItem, 'quantity'>;
+  disabled?: boolean;
 };
 
 function SafetyModal({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
@@ -43,7 +44,7 @@ function SafetyModal({ onCancel, onConfirm }: { onCancel: () => void; onConfirm:
   );
 }
 
-export default function RequestExchangeButton({ item }: Props) {
+export default function RequestExchangeButton({ item, disabled }: Props) {
   const { addItem, openDrawer, items } = useCart();
   const [showModal, setShowModal] = useState(false);
   const [added, setAdded] = useState(false);
@@ -56,6 +57,18 @@ export default function RequestExchangeButton({ item }: Props) {
     setAdded(true);
     openDrawer();
     setTimeout(() => setAdded(false), 2000);
+  }
+
+  if (disabled) {
+    return (
+      <button
+        disabled
+        className="w-full rounded-2xl py-4 text-base font-bold text-white opacity-50 cursor-not-allowed"
+        style={{ backgroundColor: '#6b7280' }}
+      >
+        Sold Out
+      </button>
+    );
   }
 
   if (inCart) {
