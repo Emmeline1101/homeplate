@@ -8,7 +8,8 @@ export async function confirmExchange(
   const supabase = await createClient();
 
   for (const { listingId, quantity } of items) {
-    const { error } = await supabase.rpc('decrement_quantity', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)('decrement_quantity', {
       p_listing_id: listingId,
       p_amount: quantity,
     });
