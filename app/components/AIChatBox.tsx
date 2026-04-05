@@ -1,6 +1,38 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+
+function useDraggable(initialBottom: number, initialRight: number) {
+  const [pos, setPos] = useState({ bottom: initialBottom, right: initialRight });
+  const didDrag = useRef(false);
+
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startBottom = pos.bottom;
+    const startRight = pos.right;
+    didDrag.current = false;
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) didDrag.current = true;
+      setPos({
+        bottom: Math.max(8, Math.min(window.innerHeight - 64, startBottom - dy)),
+        right:  Math.max(8, Math.min(window.innerWidth  - 64, startRight  - dx)),
+      });
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup',   onUp);
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup',   onUp);
+  }, [pos]);
+
+  return { pos, onPointerDown, didDrag };
+}
 
 function renderMarkdown(text: string) {
   // Split into lines to handle block-level elements
@@ -65,6 +97,7 @@ export default function AIChatBox() {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const { pos, onPointerDown, didDrag } = useDraggable(80, 16);
 
   useEffect(() => {
     if (open) {
@@ -109,9 +142,10 @@ export default function AIChatBox() {
     <>
       {/* Floating button */}
       <button
-        onClick={() => setOpen(v => !v)}
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50 w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center text-2xl transition-all hover:scale-105 active:scale-95"
-        style={{ backgroundColor: '#1a3a2a' }}
+        onPointerDown={onPointerDown}
+        onClick={() => { if (!didDrag.current) setOpen(v => !v); }}
+        className="fixed z-50 w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center text-2xl transition-transform hover:scale-105 active:scale-95 touch-none select-none"
+        style={{ backgroundColor: '#1a3a2a', bottom: pos.bottom, right: pos.right, cursor: 'grab' }}
         aria-label="AI Assistant"
       >
         {open ? (
@@ -125,8 +159,10 @@ export default function AIChatBox() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-36 right-4 md:bottom-24 md:right-6 z-50 w-[calc(100vw-2rem)] max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
-          style={{ height: 420 }}>
+        <div
+          className="fixed z-50 w-[calc(100vw-2rem)] max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
+          style={{ height: 420, bottom: pos.bottom + 64, right: pos.right }}
+        >
 
           {/* Header */}
           <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-gray-100" style={{ backgroundColor: '#1a3a2a' }}>

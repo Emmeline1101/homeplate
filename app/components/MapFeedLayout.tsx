@@ -4,11 +4,44 @@ import { useRef, useState, useCallback } from 'react';
 import MapboxMapClient from './MapboxMapClient';
 import ListingFeed from './ListingFeed';
 
+function useDraggable(initialBottom: number, initialRight: number) {
+  const [pos, setPos] = useState({ bottom: initialBottom, right: initialRight });
+  const didDrag = useRef(false);
+
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startBottom = pos.bottom;
+    const startRight = pos.right;
+    didDrag.current = false;
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) didDrag.current = true;
+      setPos({
+        bottom: Math.max(8, Math.min(window.innerHeight - 64, startBottom - dy)),
+        right:  Math.max(8, Math.min(window.innerWidth  - 64, startRight  - dx)),
+      });
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup',   onUp);
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup',   onUp);
+  }, [pos]);
+
+  return { pos, onPointerDown, didDrag };
+}
+
 export default function MapFeedLayout() {
   const [mapWidth, setMapWidth]   = useState(55);
   const [mapVisible, setMapVisible] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { pos: mapBtnPos, onPointerDown: mapBtnDown, didDrag: mapBtnDragged } = useDraggable(72, 80);
 
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -211,12 +244,13 @@ export default function MapFeedLayout() {
 
         {/* Mobile floating toggle */}
         <button
-          onClick={() => setFullscreen((f) => !f)}
-          className="flex md:hidden items-center gap-2"
+          onPointerDown={mapBtnDown}
+          onClick={() => { if (!mapBtnDragged.current) setFullscreen(f => !f); }}
+          className="flex md:hidden items-center gap-2 touch-none select-none"
           style={{
             position: 'fixed',
-            bottom: 72,
-            right: 16,
+            bottom: mapBtnPos.bottom,
+            right: mapBtnPos.right,
             zIndex: 40,
             padding: '10px 18px',
             borderRadius: 999,
@@ -225,7 +259,7 @@ export default function MapFeedLayout() {
             color: 'white',
             fontSize: 13,
             fontWeight: 700,
-            cursor: 'pointer',
+            cursor: 'grab',
             boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
           }}
         >
