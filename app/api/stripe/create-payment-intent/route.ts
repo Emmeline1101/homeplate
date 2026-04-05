@@ -1,8 +1,7 @@
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 export async function POST(req: Request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const { amount } = await req.json() as { amount: number };
 
   if (!amount || amount < 50) {
