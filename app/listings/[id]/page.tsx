@@ -201,7 +201,7 @@ export default async function ListingDetailPage({
       </div>
 
       {/* ── Scrollable content ── */}
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 pb-36 md:pb-12 space-y-3 -mt-1">
+      <main className="flex-1 w-full max-w-2xl mx-auto px-4 pb-64 md:pb-12 space-y-3 -mt-1">
 
         {/* Title + cook card */}
         <div className="bg-white space-y-4 pt-2 pb-5 border-b border-gray-100">
