@@ -3,6 +3,85 @@
 import { useState, useRef, useCallback } from 'react';
 import { createClient } from '../lib/supabase';
 
+// ── Permit Guide Accordion ───────────────────────────────────────────────────
+function PermitGuide() {
+  const [open, setOpen] = useState(false);
+
+  const steps = [
+    {
+      num: '1',
+      title: 'Check if you qualify',
+      body: 'California Cottage Food Law (AB 1616) covers non-potentially-hazardous foods — baked goods, jams, candy, dried herbs, etc. Confirm your product is on the approved list before applying.',
+    },
+    {
+      num: '2',
+      title: 'Complete the food handler course',
+      body: "Take a CDPH-approved food handler course (≈ $10–$15, about 2 hours online). You'll receive a certificate upon completion.",
+    },
+    {
+      num: '3',
+      title: 'Apply through your county health dept.',
+      body: "Visit your county's Environmental Health website and submit a Cottage Food Operation (CFO) permit application. Fees vary by county ($50–$150). Processing typically takes 2–4 weeks.",
+    },
+    {
+      num: '4',
+      title: 'Receive your permit',
+      body: "Your county will mail or email a signed permit document. Keep the original — you'll upload a photo or scan of it here.",
+    },
+    {
+      num: '5',
+      title: 'Upload your permit below',
+      body: 'Take a clear photo or scan of your permit (JPEG/PNG/PDF). Make sure the permit number, your name, and the county seal are visible.',
+    },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-blue-200 bg-blue-50 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 shrink-0">
+            <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </span>
+          <span className="text-sm font-semibold text-blue-800">How to get a CA Cottage Food Permit</span>
+        </div>
+        <svg
+          className={`w-4 h-4 text-blue-500 transition-transform ${open ? 'rotate-180' : ''}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 space-y-3 border-t border-blue-200 pt-4">
+          {steps.map((s) => (
+            <div key={s.num} className="flex gap-3">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold shrink-0 mt-0.5">
+                {s.num}
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-blue-900">{s.title}</p>
+                <p className="text-xs text-blue-700 mt-0.5 leading-relaxed">{s.body}</p>
+              </div>
+            </div>
+          ))}
+          <p className="text-xs text-blue-600 mt-2 pt-2 border-t border-blue-200">
+            Questions? Visit{' '}
+            <span className="font-semibold">cdph.ca.gov</span> or contact your local county Environmental Health department.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const CATEGORIES = [
   'Baked Goods',
   'Asian Sweets',
@@ -116,12 +195,16 @@ export default function PostForm() {
   const [showModal, setShowModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isVideoDragging, setIsVideoDragging] = useState(false);
+  const [isPermitDragging, setIsPermitDragging] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [permitFile, setPermitFile] = useState<File | null>(null);
+  const [permitError, setPermitError] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [published, setPublished] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const permitInputRef = useRef<HTMLInputElement>(null);
 
   function toggleAllergen(id: string) {
     setAllergens((prev) => {
@@ -151,7 +234,27 @@ export default function PostForm() {
     if (file && file.type.startsWith('video/')) setVideoFile(file);
   }, []);
 
-  function handlePublishClick() { setShowModal(true); }
+  const handlePermitDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsPermitDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+      if (allowed.includes(file.type)) {
+        setPermitFile(file);
+        setPermitError(false);
+      }
+    }
+  }, []);
+
+  function handlePublishClick() {
+    if (!permitFile) {
+      setPermitError(true);
+      document.getElementById('permit-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    setShowModal(true);
+  }
 
   async function handleConfirm() {
     setShowModal(false);
@@ -161,6 +264,11 @@ export default function PostForm() {
     const userId = user?.id ?? 'anonymous';
     const listingId = crypto.randomUUID();
 
+    if (permitFile) {
+      const ext = permitFile.name.split('.').pop();
+      await supabase.storage.from('permits')
+        .upload(`${userId}/${listingId}.${ext}`, permitFile, { upsert: true });
+    }
     if (photoFile) {
       const ext = photoFile.name.split('.').pop();
       await supabase.storage.from('listing-photos')
@@ -339,9 +447,88 @@ export default function PostForm() {
           </div>
         </SectionCard>
 
-        {/* ── Section 4: Photos & Video ── */}
+        {/* ── Section 4: Permit ── */}
+        <div id="permit-section">
+          <SectionCard>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  Cottage Food Permit
+                  <span className="ml-2 text-xs font-semibold text-red-500 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">Required</span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  A valid CA Cottage Food Operation permit is required before publishing.
+                </p>
+              </div>
+            </div>
+
+            {/* Guide accordion */}
+            <PermitGuide />
+
+            {/* Permit upload */}
+            <div>
+              <Label>Upload your permit</Label>
+              <div
+                role="button" tabIndex={0}
+                onDragOver={(e) => { e.preventDefault(); setIsPermitDragging(true); }}
+                onDragLeave={() => setIsPermitDragging(false)}
+                onDrop={handlePermitDrop}
+                onClick={() => permitInputRef.current?.click()}
+                onKeyDown={(e) => e.key === 'Enter' && permitInputRef.current?.click()}
+                className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 cursor-pointer transition-colors ${
+                  permitError
+                    ? 'border-red-400 bg-red-50'
+                    : isPermitDragging
+                      ? 'border-blue-400 bg-blue-50'
+                      : permitFile
+                        ? 'border-green-400 bg-green-50'
+                        : 'border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/50'
+                }`}
+              >
+                {permitFile ? (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">📄</div>
+                    <p className="text-sm font-medium text-slate-700">{permitFile.name}</p>
+                    <p className="text-xs text-slate-400">Click to replace</p>
+                  </>
+                ) : (
+                  <>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${permitError ? 'bg-red-100' : 'bg-slate-200'}`}>
+                      🪪
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-sm font-medium ${permitError ? 'text-red-600' : 'text-slate-700'}`}>
+                        {permitError ? 'Permit required — drop a file or browse' : 'Drop your permit or browse'}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">JPEG, PNG or PDF, up to 10 MB</p>
+                    </div>
+                  </>
+                )}
+              </div>
+              {permitError && (
+                <p className="mt-2 text-xs text-red-600 font-medium">
+                  You must upload a valid Cottage Food Permit before publishing.
+                </p>
+              )}
+              <input
+                ref={permitInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                className="sr-only"
+                onChange={e => {
+                  const f = e.target.files?.[0] ?? null;
+                  setPermitFile(f);
+                  if (f) setPermitError(false);
+                }}
+              />
+            </div>
+          </SectionCard>
+        </div>
+
+        {/* ── Section 5: Photos & Video ── */}
         <SectionCard>
           <h2 className="text-base font-bold text-slate-900">Photos &amp; video</h2>
+
 
           {/* Photo upload */}
           <div>
