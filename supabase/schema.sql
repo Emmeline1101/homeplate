@@ -462,6 +462,53 @@ create policy "Users manage own saved listings"
 
 
 -- ============================================================
+-- TABLE: policy_chunks (Compliance RAG)
+-- Stores chunked food safety policy documents with embeddings
+-- for semantic retrieval during ingredient compliance checks.
+-- ============================================================
+create extension if not exists vector;
+
+create table if not exists public.policy_chunks (
+  id          uuid primary key default uuid_generate_v4(),
+  source      text not null,   -- e.g. 'CA_AB1616', 'FDA_ALLERGEN', 'CA_SB1591'
+  title       text not null,   -- section title, used in citations
+  chunk_text  text not null,   -- the policy excerpt
+  embedding   vector(1024),    -- Voyage AI voyage-3 dimension
+  created_at  timestamptz default now()
+);
+
+-- IVFFlat index for fast cosine similarity search
+create index if not exists policy_chunks_embedding_idx
+  on public.policy_chunks
+  using ivfflat (embedding vector_cosine_ops)
+  with (lists = 50);
+
+-- Semantic search function called by /api/compliance
+create or replace function search_policies(
+  query_embedding vector(1024),
+  match_threshold float default 0.3,
+  match_count     int   default 6
+)
+returns table (
+  id         uuid,
+  source     text,
+  title      text,
+  chunk_text text,
+  similarity float
+)
+language sql stable as $$
+  select
+    id, source, title, chunk_text,
+    1 - (embedding <=> query_embedding) as similarity
+  from public.policy_chunks
+  where embedding is not null
+    and 1 - (embedding <=> query_embedding) > match_threshold
+  order by embedding <=> query_embedding
+  limit match_count;
+$$;
+
+
+-- ============================================================
 -- STORAGE BUCKETS
 -- Run these in Supabase Dashboard → Storage (or via SQL)
 -- ============================================================

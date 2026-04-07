@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../lib/supabase';
+import type { ComplianceResult } from '../api/compliance/route';
 
 // ── Permit Guide Accordion ───────────────────────────────────────────────────
 function PermitGuide() {
@@ -189,6 +190,103 @@ function SafetyModal({
   );
 }
 
+// ── Compliance Panel ─────────────────────────────────────────────────────────
+function CompliancePanel({ result, loading }: { result: ComplianceResult | null; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 flex items-center gap-3">
+        <div className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin shrink-0" />
+        <p className="text-sm text-slate-600">Checking compliance against CA Cottage Food Law and FDA allergen rules…</p>
+      </div>
+    );
+  }
+
+  if (!result) return null;
+
+  const hasErrors = result.issues.some(i => i.severity === 'error');
+  const hasWarnings = result.issues.some(i => i.severity === 'warning');
+
+  const borderColor = result.compliant ? 'border-green-300' : hasErrors ? 'border-red-300' : 'border-amber-300';
+  const bgColor = result.compliant ? 'bg-green-50' : hasErrors ? 'bg-red-50' : 'bg-amber-50';
+  const iconBg = result.compliant ? 'bg-green-100' : hasErrors ? 'bg-red-100' : 'bg-amber-100';
+  const icon = result.compliant ? '✅' : hasErrors ? '🚫' : '⚠️';
+  const headingColor = result.compliant ? 'text-green-800' : hasErrors ? 'text-red-800' : 'text-amber-800';
+  const summaryColor = result.compliant ? 'text-green-700' : hasErrors ? 'text-red-700' : 'text-amber-700';
+
+  return (
+    <div className={`rounded-2xl border ${borderColor} ${bgColor} p-5 space-y-4`}>
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        <span className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center text-lg shrink-0`}>{icon}</span>
+        <div>
+          <p className={`text-sm font-bold ${headingColor}`}>
+            {result.compliant ? 'Looks compliant!' : hasErrors ? 'Compliance issues found' : 'Review required'}
+          </p>
+          <p className={`text-xs mt-0.5 leading-relaxed ${summaryColor}`}>{result.summary}</p>
+        </div>
+      </div>
+
+      {/* Allergens detected */}
+      {result.parsed_allergens.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-slate-600 mb-1.5">Allergens detected</p>
+          <div className="flex flex-wrap gap-1.5">
+            {result.parsed_allergens.map(a => (
+              <span key={a} className="text-xs bg-orange-100 text-orange-700 border border-orange-200 rounded-full px-2.5 py-0.5 font-medium">
+                {a}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Issues */}
+      {result.issues.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-600">Issues</p>
+          {result.issues.map((issue, idx) => (
+            <div
+              key={idx}
+              className={`flex gap-2.5 rounded-xl px-3 py-2.5 text-xs ${
+                issue.severity === 'error'
+                  ? 'bg-red-100 border border-red-200 text-red-800'
+                  : 'bg-amber-100 border border-amber-200 text-amber-800'
+              }`}
+            >
+              <span className="shrink-0 font-bold">{issue.severity === 'error' ? '✗' : '!'}</span>
+              <span>
+                <span className="font-semibold">{issue.ingredient}: </span>
+                {issue.problem}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Citations */}
+      {result.citations.length > 0 && (
+        <details className="group">
+          <summary className="text-xs font-semibold text-slate-500 cursor-pointer hover:text-slate-700 list-none flex items-center gap-1">
+            <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+            Policy references ({result.citations.length})
+          </summary>
+          <div className="mt-2 space-y-2">
+            {result.citations.map((c, idx) => (
+              <div key={idx} className="rounded-xl bg-white/60 border border-slate-200 px-3 py-2">
+                <p className="text-xs font-semibold text-slate-700">{c.title}</p>
+                <p className="text-xs text-slate-400 mb-1">{c.source}</p>
+                <p className="text-xs text-slate-600 leading-relaxed">{c.excerpt}</p>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
 // ── Main Form ────────────────────────────────────────────────────────────────
 export default function PostForm() {
   const router = useRouter();
@@ -209,6 +307,35 @@ export default function PostForm() {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const permitInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [ingredients, setIngredients] = useState('');
+  const [complianceResult, setComplianceResult] = useState<ComplianceResult | null>(null);
+  const [complianceLoading, setComplianceLoading] = useState(false);
+
+  async function handleCheckCompliance() {
+    if (!ingredients.trim()) return;
+    setComplianceLoading(true);
+    setComplianceResult(null);
+    try {
+      const res = await fetch('/api/compliance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ingredients }),
+      });
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json() as ComplianceResult;
+      setComplianceResult(data);
+    } catch {
+      setComplianceResult({
+        compliant: false,
+        issues: [],
+        citations: [],
+        summary: 'Compliance check failed. Please try again.',
+        parsed_allergens: [],
+      });
+    } finally {
+      setComplianceLoading(false);
+    }
+  }
 
   function toggleAllergen(id: string) {
     setAllergens((prev) => {
@@ -368,6 +495,39 @@ export default function PostForm() {
               placeholder="Describe your cottage food — ingredients, flavor profile, shelf life, packaging…"
               className={`${inputCls} resize-none`}
             />
+          </div>
+
+          {/* Ingredients + Compliance Check */}
+          <div className="space-y-3">
+            <div>
+              <Label>Ingredients</Label>
+              <p className="text-xs text-slate-500 -mt-1 mb-2">
+                List all ingredients — used for allergen disclosure and compliance check.
+              </p>
+              <textarea
+                name="ingredients"
+                rows={3}
+                value={ingredients}
+                onChange={e => {
+                  setIngredients(e.target.value);
+                  setComplianceResult(null);
+                }}
+                placeholder="e.g. all-purpose flour, butter, eggs, sugar, vanilla extract, cream cheese…"
+                className={`${inputCls} resize-none`}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleCheckCompliance}
+              disabled={!ingredients.trim() || complianceLoading}
+              className="flex items-center gap-2 rounded-xl border border-orange-300 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              Check Compliance
+            </button>
+            <CompliancePanel result={complianceResult} loading={complianceLoading} />
           </div>
 
           {/* Category */}
