@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import { CUISINE_GRADIENTS } from '../lib/mock';
@@ -15,6 +15,7 @@ type SearchListing = {
   quantity_left: number
   quantity_total: number
   price_cents: number
+  similarity?: number
   users: {
     name: string | null
     rating_avg: number
@@ -35,12 +36,16 @@ function formatPrice(cents: number) {
 const NOISE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E")`;
 
 export default function SearchPage() {
-  const [query, setQuery]             = useState('');
-  const [category, setCategory]       = useState('All');
-  const [priceFilter, setPriceFilter] = useState<'all' | 'free' | 'paid'>('all');
-  const [allListings, setAllListings] = useState<SearchListing[]>([]);
-  const [loading, setLoading]         = useState(true);
+  const [query, setQuery]                     = useState('');
+  const [category, setCategory]               = useState('All');
+  const [priceFilter, setPriceFilter]         = useState<'all' | 'free' | 'paid'>('all');
+  const [allListings, setAllListings]         = useState<SearchListing[]>([]);
+  const [semanticResults, setSemanticResults] = useState<SearchListing[] | null>(null);
+  const [loading, setLoading]                 = useState(true);
+  const [searching, setSearching]             = useState(false);
+  const debounceRef                           = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 初始加载全部 listings（无搜索词时展示）
   useEffect(() => {
     const supabase = createClient();
     supabase
@@ -54,23 +59,51 @@ export default function SearchPage() {
       });
   }, []);
 
+  // 语义搜索（按回车触发）
+  const runSemanticSearch = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setSemanticResults(null);
+      return;
+    }
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      const data: SearchListing[] = await res.json();
+      setSemanticResults(data);
+    } catch {
+      setSemanticResults(null);
+    } finally {
+      setSearching(false);
+    }
+  }, [allListings]);
+
+  // 清空搜索词时重置结果
+  useEffect(() => {
+    if (!query.trim()) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      setSemanticResults(null);
+    }
+  }, [query]);
+
+  // 过滤逻辑：有语义结果用语义结果，否则用关键词兜底
   const results = useMemo(() => {
-    const q = query.toLowerCase().trim();
-    return allListings.filter(l => {
-      const matchesQuery = !q ||
+    const base = semanticResults ?? allListings.filter(l => {
+      const q = query.toLowerCase().trim();
+      return !q ||
         l.title.toLowerCase().includes(q) ||
         (l.description ?? '').toLowerCase().includes(q) ||
-        (l.users?.name ?? '').toLowerCase().includes(q) ||
-        (l.cuisine_tag ?? '').toLowerCase().includes(q) ||
-        (l.users?.city ?? '').toLowerCase().includes(q);
+        (l.cuisine_tag ?? '').toLowerCase().includes(q);
+    });
+
+    return base.filter(l => {
       const matchesCategory = category === 'All' || l.cuisine_tag === category;
       const matchesPrice =
         priceFilter === 'all'  ? true :
         priceFilter === 'free' ? l.price_cents === 0 :
         l.price_cents > 0;
-      return matchesQuery && matchesCategory && matchesPrice;
+      return matchesCategory && matchesPrice;
     });
-  }, [query, category, priceFilter, allListings]);
+  }, [query, category, priceFilter, allListings, semanticResults]);
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#f7f4ef' }}>
@@ -88,10 +121,18 @@ export default function SearchPage() {
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search matcha cake, kimchi, yuzu jam…"
+            onKeyDown={e => e.key === 'Enter' && runSemanticSearch(query)}
+            placeholder="Search matcha cake, kimchi, yuzu jam… (press Enter)"
             className="w-full pl-11 pr-10 py-3.5 text-sm rounded-2xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all placeholder:text-gray-400"
           />
-          {query && (
+          {searching ? (
+            <span className="absolute right-4 top-1/2 -translate-y-1/2">
+              <svg className="w-4 h-4 text-amber-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+            </span>
+          ) : query ? (
             <button
               onClick={() => setQuery('')}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
@@ -100,7 +141,7 @@ export default function SearchPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-          )}
+          ) : null}
         </div>
 
         {/* Category filter pills */}

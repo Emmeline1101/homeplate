@@ -318,6 +318,18 @@ export default function PostForm() {
       expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
     });
 
+    // 后台生成语义搜索 embedding（fire-and-forget，不阻塞跳转）
+    fetch('/api/listings/embed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        listingId,
+        title: fd.get('title') as string,
+        description: (fd.get('description') as string) || null,
+        cuisine_tag: fd.get('cuisine') as string,
+      }),
+    }).catch(() => {}); // 失败静默，不影响用户体验
+
     setUploadProgress(100);
     setUploading(false);
     setPublished(true);
