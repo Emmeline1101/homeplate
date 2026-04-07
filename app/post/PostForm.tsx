@@ -657,21 +657,23 @@ export default function PostForm() {
             <p className="text-xs text-green-600">Your cottage food is now visible to the community.</p>
           </div>
         ) : (
-          <button
-            type="submit" disabled={uploading}
-            className="w-full rounded-2xl text-white font-bold text-base py-4 shadow-md transition-colors disabled:opacity-60"
-            style={{ backgroundColor: '#1a3a2a' }}
-          >
-            {uploading ? `Uploading… ${uploadProgress}%` : 'Publish Listing'}
-          </button>
-          {uploading && (
-            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden -mt-2">
-              <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%`, backgroundColor: '#1a3a2a' }}
-              />
-            </div>
-          )}
+          <>
+            <button
+              type="submit" disabled={uploading}
+              className="w-full rounded-2xl text-white font-bold text-base py-4 shadow-md transition-colors disabled:opacity-60"
+              style={{ backgroundColor: '#1a3a2a' }}
+            >
+              {uploading ? `Uploading… ${uploadProgress}%` : 'Publish Listing'}
+            </button>
+            {uploading && (
+              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden -mt-2">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%`, backgroundColor: '#1a3a2a' }}
+                />
+              </div>
+            )}
+          </>
         )}
       </form>
 
