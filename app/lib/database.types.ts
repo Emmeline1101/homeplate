@@ -33,6 +33,7 @@ export type User = {
   permit_status: 'none' | 'pending' | 'verified'
   is_suspended: boolean
   requires_admin_approval: boolean
+  user_code: string
   created_at: string
   updated_at: string
 }
