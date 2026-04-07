@@ -47,7 +47,7 @@ export const MOCK_LISTINGS = [
       photo_urls: [], lat: 37.7749, lng: -122.4194, city: 'San Francisco', state: 'CA',
       status: 'active' as const, report_count: 0, is_flagged: false,
       recipe_id: 'r1', made_at: now.toISOString(), expires_at: tomorrow.toISOString(),
-      video_url: null, created_at: now.toISOString(), updated_at: now.toISOString(),
+      video_url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', created_at: now.toISOString(), updated_at: now.toISOString(),
     },
     cook: { id: 'u1', name: 'Mei Lin', avatar_url: null, rating_avg: 4.8, review_count: 32, top_cook_badge: true, city: 'San Francisco' },
     recipe: {
@@ -86,7 +86,7 @@ export const MOCK_LISTINGS = [
       photo_urls: [], lat: 34.0522, lng: -118.2437, city: 'Los Angeles', state: 'CA',
       status: 'active' as const, report_count: 0, is_flagged: false,
       recipe_id: 'r2', made_at: now.toISOString(), expires_at: tomorrow.toISOString(),
-      video_url: null, created_at: now.toISOString(), updated_at: now.toISOString(),
+      video_url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4', created_at: now.toISOString(), updated_at: now.toISOString(),
     },
     cook: { id: 'u2', name: 'Carlos Reyes', avatar_url: null, rating_avg: 4.9, review_count: 58, top_cook_badge: true, city: 'Los Angeles' },
     recipe: {
@@ -123,7 +123,7 @@ export const MOCK_LISTINGS = [
       photo_urls: [], lat: 40.7128, lng: -74.006, city: 'New York', state: 'NY',
       status: 'active' as const, report_count: 0, is_flagged: false,
       recipe_id: 'r3', made_at: now.toISOString(), expires_at: tomorrow.toISOString(),
-      video_url: null, created_at: now.toISOString(), updated_at: now.toISOString(),
+      video_url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4', created_at: now.toISOString(), updated_at: now.toISOString(),
     },
     cook: { id: 'u3', name: 'Sofia Marchetti', avatar_url: null, rating_avg: 4.7, review_count: 21, top_cook_badge: false, city: 'New York' },
     recipe: {

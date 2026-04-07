@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '../lib/supabase';
 
 // ── Permit Guide Accordion ───────────────────────────────────────────────────
@@ -190,6 +191,7 @@ function SafetyModal({
 
 // ── Main Form ────────────────────────────────────────────────────────────────
 export default function PostForm() {
+  const router = useRouter();
   const [isFree, setIsFree] = useState(false);
   const [allergens, setAllergens] = useState<Set<string>>(new Set());
   const [showModal, setShowModal] = useState(false);
@@ -201,10 +203,12 @@ export default function PostForm() {
   const [permitFile, setPermitFile] = useState<File | null>(null);
   const [permitError, setPermitError] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [published, setPublished] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const permitInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   function toggleAllergen(id: string) {
     setAllergens((prev) => {
@@ -259,6 +263,7 @@ export default function PostForm() {
   async function handleConfirm() {
     setShowModal(false);
     setUploading(true);
+    setUploadProgress(0);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id ?? 'anonymous';
@@ -269,24 +274,65 @@ export default function PostForm() {
       await supabase.storage.from('permits')
         .upload(`${userId}/${listingId}.${ext}`, permitFile, { upsert: true });
     }
+    setUploadProgress(20);
+
+    let photoUrl: string | null = null;
     if (photoFile) {
       const ext = photoFile.name.split('.').pop();
-      await supabase.storage.from('listing-photos')
-        .upload(`${userId}/${listingId}.${ext}`, photoFile, { upsert: true });
+      const path = `${userId}/${listingId}.${ext}`;
+      await supabase.storage.from('listing-photos').upload(path, photoFile, { upsert: true });
+      const { data } = supabase.storage.from('listing-photos').getPublicUrl(path);
+      photoUrl = data.publicUrl;
     }
+    setUploadProgress(50);
+
+    let videoUrl: string | null = null;
     if (videoFile) {
       const ext = videoFile.name.split('.').pop();
-      await supabase.storage.from('listing-videos')
-        .upload(`${userId}/${listingId}.${ext}`, videoFile, { upsert: true });
+      const path = `${userId}/${listingId}.${ext}`;
+      await supabase.storage.from('listing-videos').upload(path, videoFile, {
+        upsert: true,
+        onUploadProgress: (p) => {
+          const pct = 50 + Math.round((p.loaded / p.total) * 40);
+          setUploadProgress(pct);
+        },
+      });
+      const { data } = supabase.storage.from('listing-videos').getPublicUrl(path);
+      videoUrl = data.publicUrl;
     }
+    setUploadProgress(90);
 
+    const fd = new FormData(formRef.current!);
+    const priceRaw = fd.get('price') as string;
+    await supabase.from('listings').insert({
+      id: listingId,
+      user_id: userId,
+      title: fd.get('title') as string,
+      description: (fd.get('description') as string) || null,
+      cuisine_tag: fd.get('cuisine') as string,
+      allergens: Array.from(allergens),
+      quantity_total: parseInt(fd.get('portions') as string, 10),
+      quantity_left: parseInt(fd.get('portions') as string, 10),
+      price_cents: isFree ? 0 : Math.round(parseFloat(priceRaw || '0') * 100),
+      pickup_start: fd.get('pickup_start') ? new Date(fd.get('pickup_start') as string).toISOString() : null,
+      pickup_end: fd.get('pickup_end') ? new Date(fd.get('pickup_end') as string).toISOString() : null,
+      photo_urls: photoUrl ? [photoUrl] : [],
+      video_url: videoUrl,
+      status: 'active' as const,
+      made_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+    });
+
+    setUploadProgress(100);
     setUploading(false);
     setPublished(true);
+    router.push(`/listings/${listingId}`);
   }
 
   return (
     <>
       <form
+        ref={formRef}
         onSubmit={(e) => { e.preventDefault(); handlePublishClick(); }}
         className="space-y-5"
       >
@@ -616,8 +662,16 @@ export default function PostForm() {
             className="w-full rounded-2xl text-white font-bold text-base py-4 shadow-md transition-colors disabled:opacity-60"
             style={{ backgroundColor: '#1a3a2a' }}
           >
-            {uploading ? 'Uploading…' : 'Publish Listing'}
+            {uploading ? `Uploading… ${uploadProgress}%` : 'Publish Listing'}
           </button>
+          {uploading && (
+            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden -mt-2">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%`, backgroundColor: '#1a3a2a' }}
+              />
+            </div>
+          )}
         )}
       </form>
 

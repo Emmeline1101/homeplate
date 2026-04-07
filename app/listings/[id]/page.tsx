@@ -272,6 +272,21 @@ export default async function ListingDetailPage({
           )}
         </div>
 
+        {/* ── Video ── */}
+        {activeListing.video_url && (
+          <div className="py-4 border-b border-gray-100 space-y-3">
+            <h2 className="font-bold text-sm tracking-wide uppercase text-gray-400">Video</h2>
+            <video
+              src={activeListing.video_url}
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full rounded-2xl bg-black"
+              style={{ maxHeight: 360 }}
+            />
+          </div>
+        )}
+
         {/* ── Availability ── */}
         <div className="py-4 border-b border-gray-100 space-y-4">
           <h2 className="font-bold text-sm tracking-wide uppercase text-gray-400">Availability</h2>
