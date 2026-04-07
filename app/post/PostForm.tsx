@@ -290,13 +290,8 @@ export default function PostForm() {
     if (videoFile) {
       const ext = videoFile.name.split('.').pop();
       const path = `${userId}/${listingId}.${ext}`;
-      await supabase.storage.from('listing-videos').upload(path, videoFile, {
-        upsert: true,
-        onUploadProgress: (p) => {
-          const pct = 50 + Math.round((p.loaded / p.total) * 40);
-          setUploadProgress(pct);
-        },
-      });
+      await supabase.storage.from('listing-videos').upload(path, videoFile, { upsert: true });
+      setUploadProgress(90);
       const { data } = supabase.storage.from('listing-videos').getPublicUrl(path);
       videoUrl = data.publicUrl;
     }
