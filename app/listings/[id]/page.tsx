@@ -335,7 +335,7 @@ export default async function ListingDetailPage({
               pickupStart: activeListing.pickup_start ?? '',
               pickupEnd: activeListing.pickup_end ?? '',
             }} disabled={isSoldOut} />
-            <MessageSellerButton cookName={cookName} listingId={activeListing.id} />
+            <MessageSellerButton cookName={cookName} listingId={activeListing.id} sellerId={activeListing.user_id} />
           </div>
         </div>
 

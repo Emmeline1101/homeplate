@@ -3,7 +3,15 @@
 import { useRouter } from 'next/navigation';
 import { createClient } from '../lib/supabase';
 
-export default function MessageSellerButton({ cookName, listingId }: { cookName: string; listingId: string }) {
+export default function MessageSellerButton({
+  cookName,
+  listingId,
+  sellerId,
+}: {
+  cookName: string;
+  listingId: string;
+  sellerId: string;
+}) {
   const router = useRouter();
 
   async function handleClick() {
@@ -15,9 +23,24 @@ export default function MessageSellerButton({ cookName, listingId }: { cookName:
       return;
     }
 
-    // For now, route to a mock conversation keyed by listingId.
-    // In production: upsert a conversation row and navigate to its id.
-    router.push(`/messages/${listingId}`);
+    if (user.id === sellerId) return; // can't message yourself
+
+    // Upsert: one conversation per buyer per listing
+    const { data: conv, error } = await supabase
+      .from('conversations')
+      .upsert(
+        { listing_id: listingId, buyer_id: user.id, seller_id: sellerId },
+        { onConflict: 'listing_id,buyer_id' },
+      )
+      .select('id')
+      .single();
+
+    if (error || !conv) {
+      console.error('[MessageSellerButton] upsert error:', error);
+      return;
+    }
+
+    router.push(`/messages/${conv.id}`);
   }
 
   return (

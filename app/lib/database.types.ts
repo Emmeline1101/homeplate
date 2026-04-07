@@ -135,6 +135,20 @@ export type Report = {
   created_at: string
 }
 
+export type Conversation = {
+  id: string
+  listing_id: string | null
+  buyer_id: string
+  seller_id: string
+  created_at: string
+}
+
+export type ConversationInsert = {
+  listing_id?: string | null
+  buyer_id: string
+  seller_id: string
+}
+
 export type Message = {
   id: string
   conversation_id: string
@@ -218,6 +232,14 @@ export type Database = {
         ]
       }
       reports: { Row: Report; Insert: Omit<Report, 'id' | 'created_at'>; Update: Partial<Report>; Relationships: [] }
+      conversations: {
+        Row: Conversation; Insert: ConversationInsert; Update: Partial<ConversationInsert>
+        Relationships: [
+          { foreignKeyName: "conversations_buyer_id_fkey"; columns: ["buyer_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] },
+          { foreignKeyName: "conversations_seller_id_fkey"; columns: ["seller_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] },
+          { foreignKeyName: "conversations_listing_id_fkey"; columns: ["listing_id"]; isOneToOne: false; referencedRelation: "listings"; referencedColumns: ["id"] }
+        ]
+      }
       messages: { Row: Message; Insert: MessageInsert; Update: Partial<Pick<Message, 'is_read'>>; Relationships: [] }
       saved_listings: { Row: SavedListing; Insert: Omit<SavedListing, 'created_at'>; Update: Partial<SavedListing>; Relationships: [] }
       follows: {
