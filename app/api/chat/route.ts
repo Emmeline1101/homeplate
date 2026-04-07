@@ -15,18 +15,59 @@ Tone: Warm, knowledgeable, concise. You love food and the food community. Keep r
 
 When listing recommendations are provided in [AVAILABLE LISTINGS], always reference specific items by name and mention the cook's name if available. Be encouraging and specific.`;
 
-const INGREDIENT_KEYWORDS = [
+// Layer 1: explicit intent phrases
+const INTENT_PHRASES = [
   'i have', 'ingredient', 'what can i', 'what food', 'what dish',
   'recommend', 'suggest', 'looking for', 'want to buy', 'find me',
-  '我有', '食材', '推荐', '建议', '想买', '找', 'what should i',
-  'i want', 'craving', 'hungry', 'what matches', 'pairs well',
+  'what should i', 'i want', 'craving', 'hungry', 'what matches',
+  'pairs well', 'show me', 'any ', 'do you have', 'is there',
+  'available', 'got any', 'can i get', 'can i buy', 'give me',
+  'list', 'browse', 'what\'s good', "what's available", 'near me',
+  'in my area', 'for sale', 'for free', 'free food',
+  // Chinese
+  '我有', '食材', '推荐', '建议', '想买', '找', '有没有',
+  '给我', '看看', '什么好', '附近', '想吃', '买点', '有什么',
 ];
 
-function isIngredientOrFoodQuery(messages: { role: string; content: string }[]): boolean {
+// Layer 2: food vocabulary — any food noun triggers a search
+const FOOD_NOUNS = [
+  'cake', 'bread', 'cookie', 'cookies', 'pie', 'tart', 'muffin', 'muffins',
+  'brownie', 'brownies', 'macaron', 'macarons', 'croissant', 'croissants',
+  'dumpling', 'dumplings', 'bao', 'noodle', 'noodles', 'pasta', 'rice',
+  'soup', 'stew', 'curry', 'salad', 'sandwich', 'wrap', 'taco', 'burrito',
+  'kimchi', 'mochi', 'matcha', 'taro', 'ube', 'pandan', 'red bean',
+  'jam', 'jelly', 'honey', 'granola', 'nut', 'nuts', 'chocolate', 'candy',
+  'dessert', 'desserts', 'snack', 'snacks', 'pastry', 'pastries', 'bake',
+  'baked', 'homemade', 'food', 'meal', 'dish', 'treat', 'sweets',
+  // Chinese
+  '蛋糕', '面包', '饼干', '派', '塔', '马卡龙', '可颂', '饺子', '包子',
+  '面条', '汤', '咖喱', '沙拉', '寿司', '泡菜', '年糕', '抹茶', '芋头',
+  '红豆', '果酱', '蜂蜜', '麦片', '坚果', '巧克力', '糖果', '甜点',
+  '零食', '烘焙', '手工', '食物', '美食',
+];
+
+// Layer 3: questions that are purely about regulations/law — skip search
+const REGULATION_ONLY = [
+  'cottage food law', 'ab 1616', 'sb 1591', 'class a', 'class b',
+  'is it legal', 'can i sell', 'allowed to sell', 'permit', 'license',
+  'allergen disclosure', 'labeling requirement',
+];
+
+function isListingQuery(messages: { role: string; content: string }[]): boolean {
   const lastUser = [...messages].reverse().find(m => m.role === 'user');
   if (!lastUser) return false;
   const lower = lastUser.content.toLowerCase();
-  return INGREDIENT_KEYWORDS.some(k => lower.includes(k));
+
+  // Layer 3 exclusion first: pure regulation question → no search needed
+  if (REGULATION_ONLY.some(k => lower.includes(k))) return false;
+
+  // Layer 1: explicit intent
+  if (INTENT_PHRASES.some(k => lower.includes(k))) return true;
+
+  // Layer 2: food noun present
+  if (FOOD_NOUNS.some(k => lower.includes(k))) return true;
+
+  return false;
 }
 
 async function getEmbedding(text: string): Promise<number[]> {
@@ -112,7 +153,7 @@ export async function POST(req: Request) {
   let listings: ListingResult[] = [];
   let systemPrompt = SYSTEM;
 
-  if (isIngredientOrFoodQuery(messages)) {
+  if (isListingQuery(messages)) {
     const lastUser = [...messages].reverse().find(m => m.role === 'user');
     if (lastUser) {
       listings = await searchRelevantListings(lastUser.content);
