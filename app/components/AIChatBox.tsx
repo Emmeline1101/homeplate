@@ -6,14 +6,15 @@ import Link from 'next/link';
 function useDraggable(initialBottom: number, initialRight: number) {
   const [pos, setPos] = useState({ bottom: initialBottom, right: initialRight });
   const didDrag = useRef(false);
+  const posRef = useRef(pos);
+  useEffect(() => { posRef.current = pos; }, [pos]);
 
-  const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+  const onButtonPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
     const startX = e.clientX;
     const startY = e.clientY;
-    const startBottom = pos.bottom;
-    const startRight = pos.right;
+    const startBottom = posRef.current.bottom;
+    const startRight  = posRef.current.right;
     didDrag.current = false;
-
     const onMove = (ev: PointerEvent) => {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
@@ -23,6 +24,51 @@ function useDraggable(initialBottom: number, initialRight: number) {
         right:  Math.max(8, Math.min(window.innerWidth  - 64, startRight  - dx)),
       });
     };
+    const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup',   onUp);
+  }, []);
+
+  const onHeaderPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startBottom = posRef.current.bottom;
+    const startRight  = posRef.current.right;
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      setPos({
+        bottom: Math.max(8, Math.min(window.innerHeight - 64, startBottom - dy)),
+        right:  Math.max(8, Math.min(window.innerWidth  - 64, startRight  - dx)),
+      });
+    };
+    const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup',   onUp);
+  }, []);
+
+  return { pos, onButtonPointerDown, onHeaderPointerDown, didDrag };
+}
+
+function useResizable(initialWidth: number, initialHeight: number) {
+  const [size, setSize] = useState({ width: initialWidth, height: initialHeight });
+  const sizeRef = useRef(size);
+  useEffect(() => { sizeRef.current = size; }, [size]);
+
+  const onResizePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startW = sizeRef.current.width;
+    const startH = sizeRef.current.height;
+
+    const onMove = (ev: PointerEvent) => {
+      const newW = Math.max(280, Math.min(window.innerWidth  - 32, startW - (ev.clientX - startX)));
+      const newH = Math.max(320, Math.min(window.innerHeight - 120, startH - (ev.clientY - startY)));
+      setSize({ width: newW, height: newH });
+    };
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup',   onUp);
@@ -30,9 +76,9 @@ function useDraggable(initialBottom: number, initialRight: number) {
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup',   onUp);
-  }, [pos]);
+  }, []);
 
-  return { pos, onPointerDown, didDrag };
+  return { size, onResizePointerDown };
 }
 
 function renderMarkdown(text: string) {
@@ -131,9 +177,11 @@ export default function AIChatBox() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fontSize, setFontSize] = useState(13); // px, range 11–18
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const { pos, onPointerDown, didDrag } = useDraggable(80, 16);
+  const inputRef  = useRef<HTMLTextAreaElement>(null);
+  const { pos, onButtonPointerDown, onHeaderPointerDown, didDrag } = useDraggable(80, 16);
+  const { size, onResizePointerDown } = useResizable(384, 480);
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 100);
@@ -184,7 +232,7 @@ export default function AIChatBox() {
     <>
       {/* Floating button */}
       <button
-        onPointerDown={onPointerDown}
+        onPointerDown={onButtonPointerDown}
         onClick={() => { if (!didDrag.current) setOpen(v => !v); }}
         className="fixed z-50 w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center text-2xl transition-transform hover:scale-105 active:scale-95 touch-none select-none"
         style={{ backgroundColor: '#1a3a2a', bottom: pos.bottom, right: pos.right, cursor: 'grab' }}
@@ -200,23 +248,50 @@ export default function AIChatBox() {
       {/* Chat panel */}
       {open && (
         <div
-          className="fixed z-50 w-[calc(100vw-2rem)] max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
-          style={{ height: 480, bottom: pos.bottom + 64, right: pos.right }}
+          className="fixed z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
+          style={{ width: size.width, height: size.height, bottom: pos.bottom + 64, right: pos.right }}
         >
-          {/* Header */}
-          <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-gray-100" style={{ backgroundColor: '#1a3a2a' }}>
+          {/* Resize handle — top-left corner */}
+          <div
+            onPointerDown={onResizePointerDown}
+            className="absolute top-0 left-0 w-5 h-5 z-10 rounded-tl-2xl"
+            style={{ cursor: 'nw-resize', touchAction: 'none' }}
+            title="拖动调整大小"
+          />
+
+          {/* Header — draggable */}
+          <div
+            onPointerDown={onHeaderPointerDown}
+            className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-gray-100 touch-none select-none"
+            style={{ backgroundColor: '#1a3a2a', cursor: 'grab' }}
+          >
             <span className="text-lg">✨</span>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-white">HomeBites Assistant</p>
               <p className="text-[10px] text-green-300">Find food · Get recommendations</p>
+            </div>
+
+            {/* Font size controls */}
+            <div className="flex items-center gap-1 shrink-0" onPointerDown={e => e.stopPropagation()}>
+              <button
+                onClick={() => setFontSize(s => Math.max(11, s - 1))}
+                className="w-6 h-6 rounded-md flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors text-xs font-bold"
+                title="缩小字体"
+              >A−</button>
+              <span className="text-[10px] text-green-300 w-6 text-center">{fontSize}</span>
+              <button
+                onClick={() => setFontSize(s => Math.min(18, s + 1))}
+                className="w-6 h-6 rounded-md flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors text-xs font-bold"
+                title="放大字体"
+              >A+</button>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ fontSize }}>
             {messages.length === 0 && (
               <div className="space-y-3">
-                <p className="text-xs text-gray-400 text-center pt-2">
+                <p className="text-gray-400 text-center pt-2" style={{ fontSize: fontSize - 1 }}>
                   Tell me what ingredients you have and I&apos;ll find food for you ✨
                 </p>
                 <div className="grid grid-cols-1 gap-2">
@@ -224,7 +299,8 @@ export default function AIChatBox() {
                     <button
                       key={s}
                       onClick={() => send(s)}
-                      className="text-left text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 hover:bg-amber-50 hover:border-amber-200 transition-colors"
+                      className="text-left text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 hover:bg-amber-50 hover:border-amber-200 transition-colors"
+                      style={{ fontSize: fontSize - 1 }}
                     >
                       {s}
                     </button>
@@ -236,7 +312,7 @@ export default function AIChatBox() {
             {messages.map((m, i) => (
               <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div
-                  className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
+                  className={`max-w-[85%] px-3 py-2 rounded-2xl leading-relaxed ${
                     m.role === 'user'
                       ? 'text-white rounded-br-md'
                       : 'bg-gray-100 text-gray-800 rounded-bl-md'
@@ -246,10 +322,9 @@ export default function AIChatBox() {
                   {m.role === 'assistant' ? renderMarkdown(m.content) : m.content}
                 </div>
 
-                {/* Listing cards below assistant messages */}
                 {m.role === 'assistant' && m.listings && m.listings.length > 0 && (
                   <div className="w-full mt-2 space-y-1.5">
-                    <p className="text-[10px] text-gray-400 pl-1">Available now on HomeBites:</p>
+                    <p className="text-gray-400 pl-1" style={{ fontSize: fontSize - 2 }}>Available now on HomeBites:</p>
                     {m.listings.map(listing => (
                       <ListingCardRow key={listing.id} listing={listing} />
                     ))}
@@ -281,8 +356,8 @@ export default function AIChatBox() {
               onKeyDown={handleKeyDown}
               placeholder="I have eggs and cheese… find me something!"
               rows={1}
-              className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs resize-none focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100 transition-all"
-              style={{ maxHeight: 72 }}
+              className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 resize-none focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100 transition-all"
+              style={{ maxHeight: 72, fontSize }}
             />
             <button
               onClick={() => send(draft)}
