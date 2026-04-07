@@ -113,7 +113,7 @@ export default function ConversationPage({
             seller:users!conversations_seller_id_fkey(id, name, avatar_url)
           `)
           .eq('id', convId)
-          .single() as Promise<{ data: {
+          .single() as unknown as Promise<{ data: {
             listing_id: string | null;
             buyer_id: string;
             seller_id: string;
