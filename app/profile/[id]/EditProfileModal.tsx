@@ -4,6 +4,15 @@ import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateProfile } from '../../actions/profile';
 
+type MessagePrivacy = 'everyone' | 'followers' | 'following' | 'friends';
+
+const PRIVACY_OPTIONS: { value: MessagePrivacy; label: string; desc: string }[] = [
+  { value: 'everyone',  label: 'Everyone',          desc: 'Anyone can send you a message' },
+  { value: 'followers', label: 'My followers only',  desc: 'People who follow you' },
+  { value: 'following', label: 'People I follow',    desc: 'People you follow' },
+  { value: 'friends',   label: 'Friends only',       desc: 'Mutual followers' },
+];
+
 interface Props {
   profile: {
     name: string | null;
@@ -12,6 +21,7 @@ interface Props {
     state: string | null;
     avatar_url: string | null;
     cover_url: string | null;
+    message_privacy: MessagePrivacy;
   };
   coverFrom: string;
   coverTo: string;
@@ -23,6 +33,7 @@ export default function EditProfileModal({ profile, coverFrom, coverTo }: Props)
   const [error, setError] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatar_url);
   const [coverPreview, setCoverPreview] = useState<string | null>(profile.cover_url);
+  const [privacy, setPrivacy] = useState<MessagePrivacy>(profile.message_privacy);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
 
@@ -200,6 +211,33 @@ export default function EditProfileModal({ profile, coverFrom, coverTo }: Props)
                       className="w-full text-sm px-3.5 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1a3a2a]/20 focus:border-[#1a3a2a] transition-colors"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Message Privacy */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-2">
+                  💬 Who can message you?
+                </label>
+                <input type="hidden" name="message_privacy" value={privacy} />
+                <div className="grid grid-cols-2 gap-2">
+                  {PRIVACY_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setPrivacy(opt.value)}
+                      className="text-left px-3 py-2.5 rounded-xl border transition-all"
+                      style={privacy === opt.value
+                        ? { borderColor: '#1a3a2a', backgroundColor: '#f0f7f4' }
+                        : { borderColor: '#e5e7eb', backgroundColor: '#fff' }
+                      }
+                    >
+                      <p className="text-xs font-bold" style={{ color: privacy === opt.value ? '#1a3a2a' : '#374151' }}>
+                        {opt.label}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{opt.desc}</p>
+                    </button>
+                  ))}
                 </div>
               </div>
 

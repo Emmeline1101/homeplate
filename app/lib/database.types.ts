@@ -31,6 +31,7 @@ export type User = {
   top_cook_badge: boolean
   stripe_account_id: string | null
   permit_status: 'none' | 'pending' | 'verified'
+  message_privacy: 'everyone' | 'followers' | 'following' | 'friends'
   is_suspended: boolean
   requires_admin_approval: boolean
   user_code: string

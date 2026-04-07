@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import FollowButton from '../../components/FollowButton';
+import MessageSellerButton from '../../components/MessageSellerButton';
 import EditProfileModal from './EditProfileModal';
 import ProfileCover from './ProfileCover';
 import ProfileOrders from './ProfileOrders';
@@ -70,7 +71,7 @@ export default async function ProfilePage({
   // Fetch profile
   let { data: profile, error: profileError } = await supabase
     .from('users')
-    .select('id, name, email, avatar_url, cover_url, bio, city, state, rating_avg, review_count, follower_count, following_count, top_cook_badge, permit_status')
+    .select('id, name, email, avatar_url, cover_url, bio, city, state, rating_avg, review_count, follower_count, following_count, top_cook_badge, permit_status, message_privacy')
     .eq('id', profileUserId)
     .single();
 
@@ -179,16 +180,24 @@ export default async function ProfilePage({
                     state: profile.state,
                     avatar_url: profile.avatar_url,
                     cover_url: ('cover_url' in profile ? (profile as { cover_url: string | null }).cover_url : null),
+                    message_privacy: (profile as { message_privacy?: string }).message_privacy as 'everyone' | 'followers' | 'following' | 'friends' ?? 'everyone',
                   }}
                   coverFrom={coverFrom}
                   coverTo={coverTo}
                 />
               ) : authUser ? (
-                <FollowButton
-                  targetId={profileUserId}
-                  initialIsFollowing={isFollowing}
-                  isFriend={isFriend}
-                />
+                <div className="flex items-center gap-2">
+                  <FollowButton
+                    targetId={profileUserId}
+                    initialIsFollowing={isFollowing}
+                    isFriend={isFriend}
+                  />
+                  <MessageSellerButton
+                    cookName={profile.name ?? 'Cook'}
+                    sellerId={profileUserId}
+                    compact
+                  />
+                </div>
               ) : (
                 <Link
                   href="/auth/signin"

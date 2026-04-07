@@ -20,6 +20,11 @@ export async function updateProfile(formData: FormData) {
   if (typeof city === 'string') updates.city = city.trim() || null;
   if (typeof state === 'string') updates.state = state.trim() || null;
 
+  const messagePrivacy = formData.get('message_privacy');
+  if (typeof messagePrivacy === 'string' && ['everyone', 'followers', 'following', 'friends'].includes(messagePrivacy)) {
+    updates.message_privacy = messagePrivacy;
+  }
+
   // Avatar upload
   const avatarFile = formData.get('avatar') as File | null;
   if (avatarFile && avatarFile.size > 0) {
