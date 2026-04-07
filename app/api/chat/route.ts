@@ -83,7 +83,7 @@ async function searchRelevantListings(query: string): Promise<ListingResult[]> {
     if (!full?.length) return [];
 
     const simMap = Object.fromEntries(matches.map((m: { id: string; similarity: number }) => [m.id, m.similarity]));
-    const results = (full as ListingResult[]).map(l => ({ ...l, similarity: simMap[l.id] }));
+    const results = (full as unknown as ListingResult[]).map(l => ({ ...l, similarity: simMap[l.id] }));
     results.sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0));
     return results.slice(0, 5);
   } catch (err) {
