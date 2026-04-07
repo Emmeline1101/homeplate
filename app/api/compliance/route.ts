@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-async function callLLM(system: string, user: string): Promise<string> {
+async function callLLM(system: string, user: string, retries = 2): Promise<string> {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -28,9 +28,15 @@ async function callLLM(system: string, user: string): Promise<string> {
         { role: 'user', content: user },
       ],
     }),
+    signal: AbortSignal.timeout(20000), // 20s 超时，不再无限等
   });
   const data = await res.json() as { choices?: { message: { content: string } }[] };
-  return data.choices?.[0]?.message?.content ?? '{}';
+  const content = (data.choices?.[0]?.message?.content ?? '').trim();
+  if (!content || content === '{}') {
+    if (retries > 0) return callLLM(system, user, retries - 1);
+    return '{}';
+  }
+  return content;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -73,6 +79,7 @@ async function getEmbedding(text: string): Promise<number[]> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ input: [text], model: 'voyage-3' }),
+    signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) throw new Error(`Voyage error: ${await res.text()}`);
   const json = await res.json() as { data: { embedding: number[] }[] };
@@ -85,12 +92,18 @@ async function retrievePolicies(ingredients: string): Promise<PolicyChunk[]> {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  const embedding = await getEmbedding(ingredients);
+  let embedding: number[];
+  try {
+    embedding = await getEmbedding(ingredients);
+  } catch (err) {
+    console.error('[compliance] embedding failed, proceeding without policy context:', err);
+    return [];
+  }
 
   const { data, error } = await supabase.rpc('search_policies', {
     query_embedding: embedding,
     match_threshold: 0.25,
-    match_count: 6,
+    match_count: 3,
   });
 
   if (error) {
@@ -108,33 +121,26 @@ async function analyzeCompliance(
   policies: PolicyChunk[],
 ): Promise<{ compliant: boolean; issues: ComplianceIssue[]; summary: string; parsed_allergens: string[] }> {
   const policyContext = policies
-    .map(p => `[${p.source}] ${p.title}:\n${p.chunk_text}`)
-    .join('\n\n---\n\n');
+    .map(p => `[${p.source}] ${p.title}:\n${p.chunk_text.slice(0, 300)}`)
+    .join('\n---\n');
 
   const text = await callLLM(
-    `You are a California Cottage Food compliance officer and food safety expert.
+    `You are a CA Cottage Food compliance checker. Output ONLY valid JSON, no markdown, no explanation.`,
+    `Ingredients: ${ingredients}
 
-Given an ingredient list and relevant policy excerpts, do the following in one pass:
-1. Identify all FDA major food allergens present (milk, eggs, fish, shellfish, tree nuts, peanuts, wheat, soy, sesame)
-2. Determine if the product is compliant with California AB 1616 Cottage Food Law and FDA allergen rules
+Policy context:
+${policyContext}
 
-Respond in JSON only, no markdown:
-{
-  "parsed_allergens": ["allergen categories found"],
-  "compliant": true or false,
-  "issues": [
-    {"ingredient": "name", "problem": "clear explanation", "severity": "error" or "warning"}
-  ],
-  "summary": "1-2 sentence plain-language verdict for the cook"
-}
+Output this JSON:
+{"parsed_allergens":["milk","eggs",...],"compliant":true,"issues":[{"ingredient":"x","problem":"y","severity":"error"}],"summary":"verdict"}
 
-severity "error" = product cannot be sold under Cottage Food Law
-severity "warning" = allergen disclosure required or proceed with caution`,
-    `INGREDIENT LIST:\n${ingredients}\n\nRELEVANT POLICIES:\n${policyContext}`,
+Rules: compliant=false if product needs refrigeration or contains meat/hot food. severity "error"=cannot sell, "warning"=needs label disclosure. FDA allergens: milk,eggs,fish,shellfish,tree nuts,peanuts,wheat,soy,sesame.`,
   );
 
   try {
-    const parsed = JSON.parse(text) as Partial<{
+    // Strip markdown code fences that some LLMs add (```json ... ```)
+    const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+const parsed = JSON.parse(cleaned) as Partial<{
       parsed_allergens: string[];
       compliant: boolean;
       issues: ComplianceIssue[];
