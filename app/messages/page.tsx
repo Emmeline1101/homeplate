@@ -110,7 +110,8 @@ export default function MessagesPage() {
         .in('conversation_id', convIds)
         .order('created_at', { ascending: false }) as { data: (Pick<Message, 'conversation_id' | 'body' | 'created_at' | 'is_read' | 'sender_id'>)[] | null };
 
-      const lastMsgMap: Record<string, typeof msgs[0]> = {};
+      type MsgRow = Pick<Message, 'conversation_id' | 'body' | 'created_at' | 'is_read' | 'sender_id'>;
+      const lastMsgMap: Record<string, MsgRow> = {};
       const unreadMap: Record<string, number> = {};
       for (const m of msgs ?? []) {
         if (!lastMsgMap[m.conversation_id]) lastMsgMap[m.conversation_id] = m;
