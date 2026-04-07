@@ -4,6 +4,7 @@ import Navbar from '../../components/Navbar';
 import FollowButton from '../../components/FollowButton';
 import MessageSellerButton from '../../components/MessageSellerButton';
 import EditProfileModal from './EditProfileModal';
+import AccountSettingsModal from './AccountSettingsModal';
 import ProfileCover from './ProfileCover';
 import ProfileOrders from './ProfileOrders';
 import { createClient } from '../../lib/supabaseServer';
@@ -172,19 +173,22 @@ export default async function ProfilePage({
           <div className="px-5 pb-6 pt-14">
             <div className="flex items-start justify-end mb-4">
               {isOwnProfile ? (
-                <EditProfileModal
-                  profile={{
-                    name: profile.name,
-                    bio: profile.bio,
-                    city: profile.city,
-                    state: profile.state,
-                    avatar_url: profile.avatar_url,
-                    cover_url: ('cover_url' in profile ? (profile as { cover_url: string | null }).cover_url : null),
-                    message_privacy: (profile as { message_privacy?: string }).message_privacy as 'everyone' | 'followers' | 'following' | 'friends' ?? 'everyone',
-                  }}
-                  coverFrom={coverFrom}
-                  coverTo={coverTo}
-                />
+                <div className="flex items-center gap-2">
+                  <EditProfileModal
+                    profile={{
+                      name: profile.name,
+                      bio: profile.bio,
+                      city: profile.city,
+                      state: profile.state,
+                      avatar_url: profile.avatar_url,
+                      cover_url: ('cover_url' in profile ? (profile as { cover_url: string | null }).cover_url : null),
+                      message_privacy: (profile as { message_privacy?: string }).message_privacy as 'everyone' | 'followers' | 'following' | 'friends' ?? 'everyone',
+                    }}
+                    coverFrom={coverFrom}
+                    coverTo={coverTo}
+                  />
+                  <AccountSettingsModal currentEmail={profile.email ?? ''} />
+                </div>
               ) : authUser ? (
                 <div className="flex items-center gap-2">
                   <FollowButton
