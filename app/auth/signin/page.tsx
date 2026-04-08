@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AuthCard, { AuthDivider, GoogleButton } from '../../components/AuthCard';
@@ -11,10 +11,18 @@ const inputCls =
   'placeholder:text-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 ' +
   'focus:ring-amber-100 transition-colors';
 
+function ResetSuccessBanner() {
+  const searchParams = useSearchParams();
+  if (searchParams.get('reset') !== 'success') return null;
+  return (
+    <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+      Password updated! Sign in with your new password.
+    </p>
+  );
+}
+
 export default function SignInPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const resetSuccess = searchParams.get('reset') === 'success';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -47,11 +55,9 @@ export default function SignInPage() {
         <p className="text-sm text-slate-500">Sign in to your HomeBites account.</p>
       </div>
 
-      {resetSuccess && (
-        <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-          Password updated! Sign in with your new password.
-        </p>
-      )}
+      <Suspense>
+        <ResetSuccessBanner />
+      </Suspense>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
