@@ -13,7 +13,11 @@ Your expertise:
 
 Tone: Warm, knowledgeable, concise. You love food and the food community. Keep responses under 150 words unless a detailed answer is genuinely needed.
 
-When listing recommendations are provided in [AVAILABLE LISTINGS], always reference specific items by name and mention the cook's name if available. Be encouraging and specific.`;
+When listing recommendations are provided in [AVAILABLE LISTINGS], always reference specific items by name and mention the cook's name if available. Be encouraging and specific.
+
+At the very end of every response, on its own line, output a JSON suggestions block in exactly this format (no other text on that line):
+<!--sug:["follow-up question 1","follow-up question 2","follow-up question 3"]-->
+Each question should be short (under 60 characters), natural, and relevant to what was just discussed.`;
 
 // Layer 1: explicit intent phrases
 const INTENT_PHRASES = [
@@ -189,7 +193,15 @@ export async function POST(req: Request) {
     return Response.json({ text: 'Sorry, something went wrong. Please try again.' }, { status: 500 });
   }
 
-  const text = data.choices?.[0]?.message?.content ?? '';
+  const raw = data.choices?.[0]?.message?.content ?? '';
+
+  // Extract follow-up suggestions embedded by the model
+  const sugMatch = raw.match(/<!--sug:(\[[\s\S]*?\])-->/);
+  let suggestions: string[] = [];
+  if (sugMatch) {
+    try { suggestions = JSON.parse(sugMatch[1]); } catch { /* ignore */ }
+  }
+  const text = raw.replace(/\n?<!--sug:[\s\S]*?-->/, '').trimEnd();
 
   // Return matched listings so the frontend can render cards
   const listingCards = listings.map(l => ({
@@ -205,5 +217,5 @@ export async function POST(req: Request) {
     top_cook_badge: l.users?.top_cook_badge ?? false,
   }));
 
-  return Response.json({ text, listings: listingCards });
+  return Response.json({ text, listings: listingCards, suggestions });
 }

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useChatPageContext } from '../lib/chatContextStore';
 
 function useDraggable(initialBottom: number, initialRight: number) {
   const [pos, setPos] = useState({ bottom: initialBottom, right: initialRight });
@@ -138,14 +139,26 @@ type Message = {
   role: 'user' | 'assistant';
   content: string;
   listings?: ListingCard[];
+  suggestions?: string[];
 };
 
-const STARTERS = [
+const DEFAULT_STARTERS = [
   '🥕 I have carrots and ginger — what can I find?',
   '🍳 Recommend me something with eggs and cheese',
   'What can I sell under CA cottage food law?',
   'What allergens must I disclose?',
 ];
+
+function buildContextualStarters(title: string, cuisine_tag: string | null, emoji: string | null): string[] {
+  const e = emoji ?? '🍽️';
+  const cuisine = cuisine_tag ?? 'this cuisine';
+  return [
+    `${e} Find similar ${cuisine} food near me`,
+    `How can I make ${title} at home?`,
+    `What flavors pair well with ${title}?`,
+    `Tell me more about ${cuisine} food`,
+  ];
+}
 
 function ListingCardRow({ listing }: { listing: ListingCard }) {
   const price = listing.price_cents === 0 ? 'Free' : `$${(listing.price_cents / 100).toFixed(2)}`;
@@ -182,6 +195,11 @@ export default function AIChatBox() {
   const inputRef  = useRef<HTMLTextAreaElement>(null);
   const { pos, onButtonPointerDown, onHeaderPointerDown, didDrag } = useDraggable(80, 16);
   const { size, onResizePointerDown } = useResizable(384, 480);
+  const { pageContext } = useChatPageContext();
+
+  const starters = pageContext
+    ? buildContextualStarters(pageContext.title, pageContext.cuisine_tag, pageContext.emoji)
+    : DEFAULT_STARTERS;
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 100);
@@ -207,10 +225,10 @@ export default function AIChatBox() {
           messages: next.map(m => ({ role: m.role, content: m.content })),
         }),
       });
-      const data = await res.json() as { text: string; listings?: ListingCard[] };
+      const data = await res.json() as { text: string; listings?: ListingCard[]; suggestions?: string[] };
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', content: data.text, listings: data.listings },
+        { role: 'assistant', content: data.text, listings: data.listings, suggestions: data.suggestions },
       ]);
     } catch {
       setMessages(prev => [
@@ -295,7 +313,7 @@ export default function AIChatBox() {
                   Tell me what ingredients you have and I&apos;ll find food for you ✨
                 </p>
                 <div className="grid grid-cols-1 gap-2">
-                  {STARTERS.map(s => (
+                  {starters.map(s => (
                     <button
                       key={s}
                       onClick={() => send(s)}
@@ -327,6 +345,21 @@ export default function AIChatBox() {
                     <p className="text-gray-400 pl-1" style={{ fontSize: fontSize - 2 }}>Available now on HomeBites:</p>
                     {m.listings.map(listing => (
                       <ListingCardRow key={listing.id} listing={listing} />
+                    ))}
+                  </div>
+                )}
+
+                {m.role === 'assistant' && m.suggestions && m.suggestions.length > 0 && i === messages.length - 1 && !loading && (
+                  <div className="w-full mt-2 flex flex-wrap gap-1.5">
+                    {m.suggestions.map(q => (
+                      <button
+                        key={q}
+                        onClick={() => send(q)}
+                        className="text-left text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-3 py-1 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+                        style={{ fontSize: fontSize - 2 }}
+                      >
+                        {q}
+                      </button>
                     ))}
                   </div>
                 )}

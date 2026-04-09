@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { CartProvider } from '../lib/cartStore';
 import { OrdersProvider } from '../lib/ordersStore';
+import { ChatContextProvider } from '../lib/chatContextStore';
 import CartDrawer from './CartDrawer';
 import MobileNav from './MobileNav';
 import AIChatBox from './AIChatBox';
@@ -13,10 +14,12 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
   return (
     <CartProvider>
       <OrdersProvider>
-        {children}
-        <CartDrawer />
-        <MobileNav />
-        <AIChatBox />
+        <ChatContextProvider>
+          {children}
+          <CartDrawer />
+          <MobileNav />
+          <AIChatBox />
+        </ChatContextProvider>
       </OrdersProvider>
     </CartProvider>
   );
