@@ -157,6 +157,7 @@ export default function Navbar() {
                     </div>
                     {[
                       { href: '/profile/me', label: '👤 My Profile' },
+                      { href: '/history', label: '🕐 Browsing History' },
                       { href: '/discover', label: '✨ Discover' },
                       { href: '/messages', label: '💬 Messages' },
                       { href: '/post', label: '🍱 Share a Bite' },
@@ -248,6 +249,7 @@ export default function Navbar() {
                   { href: '/blog', label: '📝 Blog' },
                   { href: '/about', label: '👩‍💻 About' },
                   { href: '/messages', label: '💬 Messages' },
+                  { href: '/history', label: '🕐 Browsing History' },
                   { href: '/profile/me', label: '👤 My Profile' },
                 ].map(({ href, label }) => (
                   <Link key={href} href={href} onClick={() => setMenuOpen(false)}

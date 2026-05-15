@@ -289,6 +289,25 @@ export default async function ProfilePage({
         {/* ── Orders (own profile only) ── */}
         {isOwnProfile && <ProfileOrders />}
 
+        {/* ── Browsing History entry (own profile only) ── */}
+        {isOwnProfile && (
+          <Link
+            href="/history"
+            className="flex items-center justify-between bg-white rounded-3xl border border-black/[0.05] shadow-sm px-5 py-4 hover:bg-gray-50 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🕐</span>
+              <div>
+                <p className="text-sm font-bold" style={{ color: '#1a3a2a' }}>浏览历史</p>
+                <p className="text-xs text-gray-400 mt-0.5">查看你看过的所有 listings</p>
+              </div>
+            </div>
+            <svg className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        )}
+
         {/* ── Listings ── */}
         <div className="bg-white rounded-3xl border border-black/[0.05] shadow-sm p-5 space-y-4">
           <h2 className="font-bold text-base" style={{ color: '#1a3a2a' }}>
