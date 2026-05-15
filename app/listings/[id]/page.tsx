@@ -5,6 +5,7 @@ import RequestExchangeButton from '../../components/RequestExchangeButton';
 import MessageSellerButton from '../../components/MessageSellerButton';
 import CartIcon from '../../components/CartIcon';
 import SetChatContext from '../../components/SetChatContext';
+import TrackView from './TrackView';
 import { CUISINE_GRADIENTS } from '../../lib/mock';
 import { createClient } from '../../lib/supabaseServer';
 import type { Listing, Recipe } from '../../lib/database.types';
@@ -111,6 +112,7 @@ export default async function ListingDetailPage({
         cuisine_tag={activeListing.cuisine_tag ?? null}
         emoji={activeListing.emoji ?? null}
       />
+      <TrackView listingId={activeListing.id} />
 
       {/* ── Full-bleed hero ── */}
       <div

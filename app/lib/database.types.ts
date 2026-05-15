@@ -166,6 +166,14 @@ export type SavedListing = {
   created_at: string
 }
 
+export type ListingView = {
+  id: string
+  user_id: string
+  listing_id: string
+  source: string
+  viewed_at: string
+}
+
 export type Moment = {
   id: string
   user_id: string
@@ -244,6 +252,7 @@ export type Database = {
       }
       messages: { Row: Message; Insert: MessageInsert; Update: Partial<Pick<Message, 'is_read'>>; Relationships: [] }
       saved_listings: { Row: SavedListing; Insert: Omit<SavedListing, 'created_at'>; Update: Partial<SavedListing>; Relationships: [] }
+      listing_views: { Row: ListingView; Insert: Omit<ListingView, 'id' | 'viewed_at'>; Update: Partial<ListingView>; Relationships: [] }
       follows: {
         Row: Follow; Insert: Omit<Follow, 'created_at'>; Update: Partial<Follow>
         Relationships: [

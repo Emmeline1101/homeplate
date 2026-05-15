@@ -36,7 +36,10 @@ const CUISINE_PHOTOS: Record<string, string> = {
 }
 const DEFAULT_PHOTO = 'https://images.unsplash.com/photo-1493770348161-369560ae357d?w=400&q=75&auto=format&fit=crop'
 
+const FOR_YOU_LABEL = 'For You';
+
 const CATEGORIES: { label: string; emoji: string }[] = [
+  { label: FOR_YOU_LABEL,        emoji: '🎯' },
   { label: 'All',                emoji: '✨' },
   { label: 'Baked Goods',        emoji: '🥐' },
   { label: 'Asian Sweets',       emoji: '🍡' },
@@ -178,10 +181,14 @@ function sortListings(items: FeedListing[], mode: SortMode): FeedListing[] {
 }
 
 export default function ListingFeed() {
-  const [active, setActive]       = useState('All');
-  const [sortMode, setSortMode]   = useState<SortMode>('newest');
-  const [listings, setListings]   = useState<FeedListing[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [active, setActive]             = useState('All');
+  const [sortMode, setSortMode]         = useState<SortMode>('newest');
+  const [listings, setListings]         = useState<FeedListing[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [recListings, setRecListings]   = useState<FeedListing[]>([]);
+  const [recBasedOn, setRecBasedOn]     = useState<string[]>([]);
+  const [recLoading, setRecLoading]     = useState(false);
+  const [recFetched, setRecFetched]     = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -196,11 +203,30 @@ export default function ListingFeed() {
       });
   }, []);
 
-  const categoryFiltered = active === 'All'
-    ? listings
-    : listings.filter(l => l.cuisine_tag === active);
+  // Fetch recommendations lazily when tab is first selected
+  useEffect(() => {
+    if (active !== FOR_YOU_LABEL || recFetched) return;
+    setRecLoading(true);
+    setRecFetched(true);
+    fetch('/api/recommendations')
+      .then((r) => r.json())
+      .then((data: { listings: FeedListing[]; based_on: string[] }) => {
+        setRecListings(data.listings ?? []);
+        setRecBasedOn(data.based_on ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setRecLoading(false));
+  }, [active, recFetched]);
 
-  const filtered = sortListings(categoryFiltered, sortMode);
+  const isForYou = active === FOR_YOU_LABEL;
+
+  const categoryFiltered = isForYou
+    ? recListings
+    : active === 'All'
+      ? listings
+      : listings.filter(l => l.cuisine_tag === active);
+
+  const filtered = isForYou ? categoryFiltered : sortListings(categoryFiltered, sortMode);
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#f7f4ef' }}>
@@ -239,24 +265,33 @@ export default function ListingFeed() {
 
       {/* Meta row */}
       <div className="shrink-0 px-5 py-2.5 flex items-center justify-between">
-        <p className="text-xs text-gray-400">
-          <span className="font-semibold text-gray-600">{filtered.length}</span> listings
-        </p>
-        <select
-          value={sortMode}
-          onChange={e => setSortMode(e.target.value as SortMode)}
-          className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-amber-300 cursor-pointer"
-        >
-          <option value="newest">Newest first</option>
-          <option value="price-asc">Price: Low → High</option>
-          <option value="price-desc">Price: High → Low</option>
-          <option value="rating">Top rated</option>
-        </select>
+        {isForYou && recBasedOn.length > 0 ? (
+          <p className="text-xs text-gray-400">
+            Based on your interest in{' '}
+            <span className="font-semibold text-gray-600">{recBasedOn.join(', ')}</span>
+          </p>
+        ) : (
+          <p className="text-xs text-gray-400">
+            <span className="font-semibold text-gray-600">{filtered.length}</span> listings
+          </p>
+        )}
+        {!isForYou && (
+          <select
+            value={sortMode}
+            onChange={e => setSortMode(e.target.value as SortMode)}
+            className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-amber-300 cursor-pointer"
+          >
+            <option value="newest">Newest first</option>
+            <option value="price-asc">Price: Low → High</option>
+            <option value="price-desc">Price: High → Low</option>
+            <option value="rating">Top rated</option>
+          </select>
+        )}
       </div>
 
       {/* Cards grid */}
       <div className="flex-1 overflow-y-auto px-5 pb-6 no-scrollbar">
-        {loading ? (
+        {(isForYou ? recLoading : loading) ? (
           <div className="grid grid-cols-2 gap-3">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="rounded-3xl bg-gray-100 animate-pulse" style={{ height: 240 }} />
@@ -264,8 +299,17 @@ export default function ListingFeed() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 gap-2 text-gray-400">
-            <span className="text-4xl">🥐</span>
-            <p className="text-sm">Nothing here yet</p>
+            {isForYou ? (
+              <>
+                <span className="text-4xl">🎯</span>
+                <p className="text-sm">Browse some listings first — we'll pick recommendations for you</p>
+              </>
+            ) : (
+              <>
+                <span className="text-4xl">🥐</span>
+                <p className="text-sm">Nothing here yet</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
